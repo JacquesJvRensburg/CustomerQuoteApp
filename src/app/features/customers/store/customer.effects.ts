@@ -62,4 +62,76 @@ export class CustomerEffects {
       ),
     { dispatch: false },
   );
+
+  updateCustomer$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(CustomerActions.updateCustomer),
+      switchMap(({ id, firstName, lastName }) =>
+        this.database.updateCustomerNames(id, firstName, lastName).pipe(
+          map((customer) => CustomerActions.updateCustomerSuccess({ customer })),
+          catchError((error: unknown) =>
+            of(
+              CustomerActions.updateCustomerFailure({
+                error: error instanceof Error ? error.message : 'Failed to update customer',
+              }),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  deleteCustomer$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(CustomerActions.deleteCustomer),
+      switchMap(({ id }) =>
+        this.database.deleteCustomer(id).pipe(
+          map(() => CustomerActions.deleteCustomerSuccess({ id })),
+          catchError((error: unknown) =>
+            of(
+              CustomerActions.deleteCustomerFailure({
+                error: error instanceof Error ? error.message : 'Failed to delete customer',
+              }),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  updateAddress$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(CustomerActions.updateAddress),
+      switchMap(({ address }) =>
+        this.database.updateAddress(address).pipe(
+          map((customer) => CustomerActions.updateAddressSuccess({ customer })),
+          catchError((error: unknown) =>
+            of(
+              CustomerActions.updateAddressFailure({
+                error: error instanceof Error ? error.message : 'Failed to update address',
+              }),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  deleteAddress$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(CustomerActions.deleteAddress),
+      switchMap(({ addressId }) =>
+        this.database.deleteAddress(addressId).pipe(
+          map((customer) => CustomerActions.deleteAddressSuccess({ customer })),
+          catchError((error: unknown) =>
+            of(
+              CustomerActions.deleteAddressFailure({
+                error: error instanceof Error ? error.message : 'Failed to delete address',
+              }),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 }

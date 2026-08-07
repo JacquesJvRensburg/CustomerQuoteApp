@@ -1,5 +1,6 @@
 import { createActionGroup, emptyProps, props } from '@ngrx/store';
 
+import { AddressEntity } from '../../../models/address.model';
 import { Customer, CustomerEntity } from '../../../models/customer.model';
 
 export const CustomerActions = createActionGroup({
@@ -11,5 +12,17 @@ export const CustomerActions = createActionGroup({
     'Create Customer': props<{ customer: Customer }>(),
     'Create Customer Success': props<{ customer: CustomerEntity }>(),
     'Create Customer Failure': props<{ error: string }>(),
+    'Update Customer': props<{ id: number; firstName: string; lastName: string }>(),
+    'Update Customer Success': props<{ customer: CustomerEntity }>(),
+    'Update Customer Failure': props<{ error: string }>(),
+    'Delete Customer': props<{ id: number }>(),
+    'Delete Customer Success': props<{ id: number }>(),
+    'Delete Customer Failure': props<{ error: string }>(),
+    'Update Address': props<{ address: AddressEntity }>(),
+    'Update Address Success': props<{ customer: CustomerEntity }>(),
+    'Update Address Failure': props<{ error: string }>(),
+    'Delete Address': props<{ addressId: number }>(),
+    'Delete Address Success': props<{ customer: CustomerEntity }>(),
+    'Delete Address Failure': props<{ error: string }>(),
   },
 });

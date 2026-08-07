@@ -87,14 +87,32 @@
               <ng-container matColumnDef="firstName">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>First name</th>
                 <td mat-cell *matCellDef="let row" class="!font-medium !text-slate-900">
-                  {{ row.firstName }}
+                  @if (isEditing(row.id)) {
+                    <input
+                      class="w-full min-w-36 rounded-md border border-cyan-300/80 bg-cyan-50 px-2 py-1 text-base font-medium text-slate-900 outline-none ring-2 ring-cyan-200/70 focus:border-cyan-500 focus:bg-white focus:ring-cyan-300"
+                      [(ngModel)]="editFirstName"
+                      name="editFirstName-{{ row.id }}"
+                      aria-label="First name"
+                    />
+                  } @else {
+                    {{ row.firstName }}
+                  }
                 </td>
               </ng-container>
 
               <ng-container matColumnDef="lastName">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Last name</th>
                 <td mat-cell *matCellDef="let row" class="!font-medium !text-slate-900">
-                  {{ row.lastName }}
+                  @if (isEditing(row.id)) {
+                    <input
+                      class="w-full min-w-36 rounded-md border border-cyan-300/80 bg-cyan-50 px-2 py-1 text-base font-medium text-slate-900 outline-none ring-2 ring-cyan-200/70 focus:border-cyan-500 focus:bg-white focus:ring-cyan-300"
+                      [(ngModel)]="editLastName"
+                      name="editLastName-{{ row.id }}"
+                      aria-label="Last name"
+                    />
+                  } @else {
+                    {{ row.lastName }}
+                  }
                 </td>
               </ng-container>
 
@@ -113,11 +131,66 @@
                 </td>
               </ng-container>
 
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef class="!text-left">Actions</th>
+                <td mat-cell *matCellDef="let row" class="!text-left">
+                  <div class="inline-flex items-center justify-start gap-1">
+                    @if (isEditing(row.id)) {
+                      <button
+                        mat-icon-button
+                        color="primary"
+                        type="button"
+                        matTooltip="Save"
+                        aria-label="Save customer"
+                        [disabled]="saving$ | async"
+                        (click)="saveEdit(row)"
+                      >
+                        <mat-icon>check</mat-icon>
+                      </button>
+                      <button
+                        mat-icon-button
+                        type="button"
+                        matTooltip="Cancel"
+                        aria-label="Cancel editing"
+                        [disabled]="saving$ | async"
+                        (click)="cancelEdit()"
+                      >
+                        <mat-icon>close</mat-icon>
+                      </button>
+                    } @else {
+                      <button
+                        mat-icon-button
+                        color="primary"
+                        type="button"
+                        matTooltip="Edit"
+                        [attr.aria-label]="'Edit ' + row.firstName + ' ' + row.lastName"
+                        [disabled]="editingCustomerId !== null || (saving$ | async)"
+                        (click)="startEdit(row)"
+                      >
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                      <button
+                        mat-icon-button
+                        color="warn"
+                        type="button"
+                        matTooltip="Delete"
+                        [attr.aria-label]="'Delete ' + row.firstName + ' ' + row.lastName"
+                        [disabled]="editingCustomerId !== null || (saving$ | async)"
+                        (click)="deleteCustomer(row)"
+                      >
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    }
+                  </div>
+                </td>
+              </ng-container>
+
               <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
               <tr
                 mat-row
                 *matRowDef="let row; columns: displayedColumns"
                 class="hover:!bg-teal-50/70"
+                [ngClass]="isEditing(row.id) ? 'bg-cyan-50/80' : ''"
               ></tr>
 
               <tr class="mat-row" *matNoDataRow>
