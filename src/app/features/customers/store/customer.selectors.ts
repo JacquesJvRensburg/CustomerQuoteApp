@@ -9,6 +9,8 @@ export const {
   selectSaving,
   selectError,
   selectFilter,
+  selectEditingCustomerId,
+  selectEditingAddressId,
 } = customersFeature;
 
 export const selectCustomerTableRows = createSelector(selectCustomers, (customers) =>

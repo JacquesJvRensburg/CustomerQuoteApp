@@ -2,14 +2,14 @@ import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
-import { provideMockActions } from '@ngrx/effects/testing';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
-import { Observable, of, Subject } from 'rxjs';
+import { of } from 'rxjs';
 
 import { CustomerLandingComponent } from './customer-landing.component';
 import { CustomerActions } from '../store/customer.actions';
 import {
   selectCustomerTableRows,
+  selectEditingCustomerId,
   selectError,
   selectFilter,
   selectLoading,
@@ -18,7 +18,6 @@ import {
 
 describe('CustomerLandingComponent', () => {
   let store: MockStore;
-  let actions$: Subject<unknown>;
   let dialogOpen: jasmine.Spy;
 
   const rows = [
@@ -31,13 +30,10 @@ describe('CustomerLandingComponent', () => {
   ];
 
   beforeEach(async () => {
-    actions$ = new Subject();
-
     await TestBed.configureTestingModule({
       imports: [CustomerLandingComponent, NoopAnimationsModule],
       providers: [
         provideRouter([]),
-        provideMockActions(() => actions$ as Observable<unknown>),
         provideMockStore({
           selectors: [
             { selector: selectCustomerTableRows, value: rows },
@@ -45,6 +41,7 @@ describe('CustomerLandingComponent', () => {
             { selector: selectSaving, value: false },
             { selector: selectError, value: null },
             { selector: selectFilter, value: '' },
+            { selector: selectEditingCustomerId, value: null },
           ],
         }),
       ],
@@ -75,16 +72,28 @@ describe('CustomerLandingComponent', () => {
     );
   });
 
-  it('should enter and cancel edit mode', () => {
+  it('should enter and cancel edit mode via store actions', () => {
     const fixture = TestBed.createComponent(CustomerLandingComponent);
     const component = fixture.componentInstance;
     fixture.detectChanges();
+    (store.dispatch as jasmine.Spy).calls.reset();
 
     component.startEdit(rows[0]);
-    expect(component.editingCustomerId).toBe(1);
+    expect(store.dispatch).toHaveBeenCalledWith(
+      CustomerActions.startCustomerEdit({ id: 1 }),
+    );
     expect(component.editFirstName).toBe('Thabo');
 
+    store.overrideSelector(selectEditingCustomerId, 1);
+    store.refreshState();
+    expect(component.editingCustomerId).toBe(1);
+
+    (store.dispatch as jasmine.Spy).calls.reset();
     component.cancelEdit();
+    expect(store.dispatch).toHaveBeenCalledWith(CustomerActions.cancelCustomerEdit());
+
+    store.overrideSelector(selectEditingCustomerId, null);
+    store.refreshState();
     expect(component.editingCustomerId).toBeNull();
     expect(component.editFirstName).toBe('');
   });
@@ -93,9 +102,9 @@ describe('CustomerLandingComponent', () => {
     const fixture = TestBed.createComponent(CustomerLandingComponent);
     const component = fixture.componentInstance;
     fixture.detectChanges();
-    (store.dispatch as jasmine.Spy).calls.reset();
 
     component.startEdit(rows[0]);
+    (store.dispatch as jasmine.Spy).calls.reset();
     component.editFirstName = '   ';
     component.saveEdit(rows[0]);
 
@@ -107,9 +116,9 @@ describe('CustomerLandingComponent', () => {
     const fixture = TestBed.createComponent(CustomerLandingComponent);
     const component = fixture.componentInstance;
     fixture.detectChanges();
-    (store.dispatch as jasmine.Spy).calls.reset();
 
     component.startEdit(rows[0]);
+    (store.dispatch as jasmine.Spy).calls.reset();
     component.editFirstName = 'Sara';
     component.editLastName = 'Molefe';
     component.saveEdit(rows[0]);
@@ -123,22 +132,21 @@ describe('CustomerLandingComponent', () => {
     );
   });
 
-  it('should cancel edit after update success', () => {
+  it('should clear draft fields when editing id becomes null', () => {
     const fixture = TestBed.createComponent(CustomerLandingComponent);
     const component = fixture.componentInstance;
     fixture.detectChanges();
 
     component.startEdit(rows[0]);
-    actions$.next(CustomerActions.updateCustomerSuccess({
-      customer: {
-        id: 1,
-        firstName: 'Sara',
-        lastName: 'Molefe',
-        addresses: [],
-      },
-    }));
+    store.overrideSelector(selectEditingCustomerId, 1);
+    store.refreshState();
 
-    expect(component.editingCustomerId).toBeNull();
+    store.overrideSelector(selectEditingCustomerId, null);
+    store.refreshState();
+
+    expect(component.editFirstName).toBe('');
+    expect(component.editLastName).toBe('');
+    expect(component.editAttempted).toBeFalse();
   });
 
   it('should dispatch deleteCustomer after dialog confirm', () => {

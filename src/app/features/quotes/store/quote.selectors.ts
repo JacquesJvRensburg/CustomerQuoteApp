@@ -10,6 +10,7 @@ export const {
   selectError,
   selectFilter,
   selectCustomerIdFilter,
+  selectEditingQuoteId,
 } = quotesFeature;
 
 export const selectQuoteTableRows = createSelector(selectQuotes, (quotes) =>

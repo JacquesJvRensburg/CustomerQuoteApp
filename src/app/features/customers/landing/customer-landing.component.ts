@@ -13,7 +13,6 @@ import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
-import { Actions, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { filter } from 'rxjs/operators';
 
@@ -27,6 +26,7 @@ import { FeatureSwitcherComponent } from '../../../shared/feature-switcher/featu
 import { CustomerActions } from '../store/customer.actions';
 import {
   selectCustomerTableRows,
+  selectEditingCustomerId,
   selectError,
   selectFilter,
   selectLoading,
@@ -66,7 +66,6 @@ interface CustomerTableRow {
 export class CustomerLandingComponent implements OnInit {
   private readonly store = inject(Store);
   private readonly dialog = inject(MatDialog);
-  private readonly actions$ = inject(Actions);
   private readonly paginator = viewChild(MatPaginator);
   private readonly sort = viewChild(MatSort);
 
@@ -127,23 +126,15 @@ export class CustomerLandingComponent implements OnInit {
         this.refreshFilter();
       });
 
-    this.actions$
-      .pipe(
-        ofType(CustomerActions.updateCustomerSuccess),
-        takeUntilDestroyed(),
-      )
-      .subscribe(() => {
-        this.cancelEdit();
-      });
-
-    this.actions$
-      .pipe(
-        ofType(CustomerActions.deleteCustomerSuccess),
-        takeUntilDestroyed(),
-      )
-      .subscribe(({ id }) => {
-        if (this.editingCustomerId === id) {
-          this.cancelEdit();
+    this.store
+      .select(selectEditingCustomerId)
+      .pipe(takeUntilDestroyed())
+      .subscribe((editingCustomerId) => {
+        this.editingCustomerId = editingCustomerId;
+        if (editingCustomerId === null) {
+          this.editFirstName = '';
+          this.editLastName = '';
+          this.editAttempted = false;
         }
       });
 
@@ -170,17 +161,14 @@ export class CustomerLandingComponent implements OnInit {
   }
 
   startEdit(row: CustomerTableRow): void {
-    this.editingCustomerId = row.id;
     this.editFirstName = row.firstName;
     this.editLastName = row.lastName;
     this.editAttempted = false;
+    this.store.dispatch(CustomerActions.startCustomerEdit({ id: row.id }));
   }
 
   cancelEdit(): void {
-    this.editingCustomerId = null;
-    this.editFirstName = '';
-    this.editLastName = '';
-    this.editAttempted = false;
+    this.store.dispatch(CustomerActions.cancelCustomerEdit());
   }
 
   saveEdit(row: CustomerTableRow): void {
