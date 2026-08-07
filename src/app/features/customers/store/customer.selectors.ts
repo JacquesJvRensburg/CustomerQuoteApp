@@ -6,6 +6,7 @@ export const {
   selectCustomersState,
   selectCustomers,
   selectLoading,
+  selectSaving,
   selectError,
 } = customersFeature;
 

@@ -9,6 +9,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'customers/new',
+    loadComponent: () =>
+      import('./features/customers/create/customer-create.component').then(
+        (m) => m.CustomerCreateComponent,
+      ),
+  },
+  {
     path: 'customers/:customerId/addresses',
     loadComponent: () =>
       import('./features/customers/addresses/customer-addresses.component').then(
