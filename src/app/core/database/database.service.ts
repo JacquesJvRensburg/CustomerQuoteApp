@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { from, Observable, of, throwError } from 'rxjs';
-import { map, switchMap, tap } from 'rxjs/operators';
+import { concatMap, last, map, switchMap, tap } from 'rxjs/operators';
 import initSqlJs, { Database, ParamsObject, SqlJsStatic } from 'sql.js';
 
 import { Address } from '../../models/address.model';
@@ -61,6 +61,68 @@ export class DatabaseService {
           db.run('ROLLBACK');
           throw error;
         }
+      }),
+    );
+  }
+
+  /** Seeds demo customers when the database is empty. */
+  ensureSeedData(): Observable<void> {
+    return this.getCustomers().pipe(
+      switchMap((customers) => {
+        if (customers.length > 0) {
+          return of(undefined);
+        }
+
+        const seedCustomers: Customer[] = [
+          {
+            firstName: 'Thabo',
+            lastName: 'Molefe',
+            addresses: [
+              {
+                street: '12 Long Street',
+                city: 'Cape Town',
+                suburb: 'City Centre',
+                postalCode: '8001',
+              },
+            ],
+          },
+          {
+            firstName: 'Sarah',
+            lastName: 'van Wyk',
+            addresses: [
+              {
+                street: '45 Rivonia Road',
+                city: 'Johannesburg',
+                suburb: 'Sandton',
+                postalCode: '2196',
+              },
+              {
+                street: '8 Beach Road',
+                city: 'Durban',
+                suburb: 'Umhlanga',
+                postalCode: '4319',
+              },
+            ],
+          },
+          {
+            firstName: 'James',
+            lastName: 'Naidoo',
+            addresses: [
+              {
+                street: '3 Church Street',
+                city: 'Pretoria',
+                suburb: 'Hatfield',
+                postalCode: '0028',
+              },
+            ],
+          },
+        ];
+
+        return from(seedCustomers).pipe(
+          concatMap((customer) => this.saveCustomer(customer)),
+          last(),
+          map(() => undefined),
+        );
       }),
     );
   }
