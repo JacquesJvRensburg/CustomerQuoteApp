@@ -3,3 +3,11 @@
 body {
   @apply m-0 min-h-screen bg-slate-100 text-slate-900 antialiased;
 }
+
+/* Tailwind preflight sets border-style: solid on all elements, which
+   draws a vertical line through Material outline form fields. */
+.mat-mdc-form-field.mat-mdc-form-field.mat-mdc-form-field.mat-mdc-form-field.mat-mdc-form-field
+  .mdc-notched-outline__notch {
+  border-right-style: hidden;
+}
+
