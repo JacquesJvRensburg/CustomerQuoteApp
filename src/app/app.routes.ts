@@ -22,5 +22,19 @@ export const routes: Routes = [
         (m) => m.CustomerAddressesComponent,
       ),
   },
+  {
+    path: 'quotes',
+    loadComponent: () =>
+      import('./features/quotes/landing/quote-landing.component').then(
+        (m) => m.QuoteLandingComponent,
+      ),
+  },
+  {
+    path: 'quotes/new',
+    loadComponent: () =>
+      import('./features/quotes/create/quote-create.component').then(
+        (m) => m.QuoteCreateComponent,
+      ),
+  },
   { path: '**', redirectTo: '' },
 ];

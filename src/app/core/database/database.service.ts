@@ -1,10 +1,11 @@
 import { Injectable } from '@angular/core';
 import { from, Observable, of, throwError } from 'rxjs';
 import { concatMap, last, map, switchMap, tap } from 'rxjs/operators';
-import initSqlJs, { Database, ParamsObject, SqlJsStatic } from 'sql.js';
+import initSqlJs, { Database, SqlJsStatic } from 'sql.js';
 
 import { Address, AddressEntity } from '../../models/address.model';
 import { Customer, CustomerEntity } from '../../models/customer.model';
+import { Quote, QuoteEntity, QuoteStatus } from '../../models/quote.model';
 import { DATABASE_SCHEMA } from './database.schema';
 
 const DB_STORAGE_KEY = 'customer-quote-app-sqlite';
@@ -263,6 +264,120 @@ export class DatabaseService {
     );
   }
 
+  /** Seeds demo quotes when the quotes table is empty and customers exist. */
+  ensureQuoteSeedData(): Observable<void> {
+    return this.ensureSeedData().pipe(
+      switchMap(() => this.getQuotes()),
+      switchMap((quotes) => {
+        if (quotes.length > 0) {
+          return of(undefined);
+        }
+
+        return this.getCustomers().pipe(
+          switchMap((customers) => {
+            if (customers.length === 0) {
+              return of(undefined);
+            }
+
+            const seedQuotes: Quote[] = [
+              {
+                customerId: customers[0].id,
+                amount: 12500.5,
+                status: 'Draft',
+              },
+              {
+                customerId: customers[0].id,
+                amount: 8900,
+                status: 'Sent',
+              },
+              {
+                customerId: customers[Math.min(1, customers.length - 1)].id,
+                amount: 24500.75,
+                status: 'Accepted',
+              },
+              {
+                customerId: customers[Math.min(2, customers.length - 1)].id,
+                amount: 5600,
+                status: 'Rejected',
+              },
+            ];
+
+            return from(seedQuotes).pipe(
+              concatMap((quote) => this.saveQuote(quote)),
+              last(),
+              map(() => undefined),
+            );
+          }),
+        );
+      }),
+    );
+  }
+
+  getQuotes(): Observable<QuoteEntity[]> {
+    return this.initialize().pipe(
+      map((db) => this.getQuotesSync(db)),
+    );
+  }
+
+  saveQuote(quote: Quote): Observable<QuoteEntity> {
+    return this.initialize().pipe(
+      map((db) => {
+        const customer = this.findCustomerRow(db, quote.customerId);
+        if (!customer) {
+          throw new Error(`Customer with id ${quote.customerId} not found`);
+        }
+
+        const createdDate = new Date().toISOString();
+        db.run(
+          `INSERT INTO quotes (customerId, amount, status, createdDate)
+           VALUES (?, ?, ?, ?)`,
+          [quote.customerId, quote.amount, quote.status, createdDate],
+        );
+
+        const id = this.getLastInsertId(db);
+        this.persist(db);
+        return this.getQuoteByIdSync(db, id);
+      }),
+    );
+  }
+
+  updateQuote(
+    id: number,
+    quote: Pick<Quote, 'customerId' | 'amount' | 'status'>,
+  ): Observable<QuoteEntity> {
+    return this.initialize().pipe(
+      map((db) => {
+        const existing = this.findQuoteRow(db, id);
+        if (!existing) {
+          throw new Error(`Quote with id ${id} not found`);
+        }
+
+        const customer = this.findCustomerRow(db, quote.customerId);
+        if (!customer) {
+          throw new Error(`Customer with id ${quote.customerId} not found`);
+        }
+
+        db.run(
+          `UPDATE quotes
+           SET customerId = ?, amount = ?, status = ?
+           WHERE id = ?`,
+          [quote.customerId, quote.amount, quote.status, id],
+        );
+        this.persist(db);
+        return this.getQuoteByIdSync(db, id);
+      }),
+    );
+  }
+
+  deleteQuote(id: number): Observable<void> {
+    return this.initialize().pipe(
+      map((db) => {
+        db.run('DELETE FROM quotes WHERE id = ?', [id]);
+        this.persist(db);
+      }),
+    );
+  }
+
   private async openDatabase(): Promise<Database> {
     this.sqlJs = await initSqlJs({
       locateFile: () => '/assets/sql-wasm.wasm',
@@ -365,6 +480,93 @@ export class DatabaseService {
     const row = statement.getAsObject();
     statement.free();
     return Number(row['customerId'] ?? 0) || null;
+  }
+
+  private getQuotesSync(db: Database): QuoteEntity[] {
+    const result = db.exec(
+      `SELECT
+         q.id,
+         q.customerId,
+         c.firstName,
+         c.lastName,
+         q.amount,
+         q.status,
+         q.createdDate
+       FROM quotes q
+       INNER JOIN customers c ON c.id = q.customerId
+       ORDER BY q.id ASC`,
+    );
+
+    if (!result.length || !result[0].values.length) {
+      return [];
+    }
+
+    return result[0].values.map((row) => this.mapQuoteRow(row));
+  }
+
+  private getQuoteByIdSync(db: Database, id: number): QuoteEntity {
+    const statement = db.prepare(
+      `SELECT
+         q.id,
+         q.customerId,
+         c.firstName,
+         c.lastName,
+         q.amount,
+         q.status,
+         q.createdDate
+       FROM quotes q
+       INNER JOIN customers c ON c.id = q.customerId
+       WHERE q.id = ?`,
+    );
+    statement.bind([id]);
+
+    if (!statement.step()) {
+      statement.free();
+      throw new Error(`Quote with id ${id} not found`);
+    }
+
+    const row = statement.getAsObject();
+    statement.free();
+
+    return {
+      id: Number(row['id'] ?? 0),
+      customerId: Number(row['customerId'] ?? 0),
+      customerFullName: `${String(row['firstName'] ?? '')} ${String(row['lastName'] ?? '')}`.trim(),
+      amount: Number(row['amount'] ?? 0),
+      status: String(row['status'] ?? 'Draft') as QuoteStatus,
+      createdDate: String(row['createdDate'] ?? ''),
+    };
+  }
+
+  private findQuoteRow(
+    db: Database,
+    id: number,
+  ): { id: number; customerId: number } | null {
+    const statement = db.prepare('SELECT id, customerId FROM quotes WHERE id = ?');
+    statement.bind([id]);
+
+    if (!statement.step()) {
+      statement.free();
+      return null;
+    }
+
+    const row = statement.getAsObject();
+    statement.free();
+    return {
+      id: Number(row['id'] ?? 0),
+      customerId: Number(row['customerId'] ?? 0),
+    };
+  }
+
+  private mapQuoteRow(row: (string | number | null | Uint8Array)[]): QuoteEntity {
+    return {
+      id: row[0] as number,
+      customerId: row[1] as number,
+      customerFullName: `${String(row[2] ?? '')} ${String(row[3] ?? '')}`.trim(),
+      amount: row[4] as number,
+      status: String(row[5] ?? 'Draft') as QuoteStatus,
+      createdDate: String(row[6] ?? ''),
+    };
   }
 
   private getLastInsertId(db: Database): number {

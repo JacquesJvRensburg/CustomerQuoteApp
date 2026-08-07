@@ -8,6 +8,8 @@ import { provideStoreDevtools } from '@ngrx/store-devtools';
 import { routes } from './app.routes';
 import { CustomerEffects } from './features/customers/store/customer.effects';
 import { customersFeature } from './features/customers/store/customer.reducer';
+import { QuoteEffects } from './features/quotes/store/quote.effects';
+import { quotesFeature } from './features/quotes/store/quote.reducer';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -16,8 +18,9 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
     provideStore({
       [customersFeature.name]: customersFeature.reducer,
+      [quotesFeature.name]: quotesFeature.reducer,
     }),
-    provideEffects([CustomerEffects]),
+    provideEffects([CustomerEffects, QuoteEffects]),
     provideStoreDevtools({ maxAge: 25, logOnly: !isDevMode() }),
   ],
 };
