@@ -74,6 +74,7 @@ export class CustomerLandingComponent implements OnInit {
     'firstName',
     'lastName',
     'addresses',
+    'quotes',
     'actions',
   ] as const;
 
