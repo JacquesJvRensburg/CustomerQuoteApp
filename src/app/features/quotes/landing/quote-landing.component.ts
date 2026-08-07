@@ -1,4 +1,4 @@
-import { AsyncPipe, NgClass } from '@angular/common';
+import { AsyncPipe, CurrencyPipe, DatePipe, NgClass } from '@angular/common';
 import { Component, effect, inject, OnInit, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -17,32 +17,37 @@ import { Actions, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { filter } from 'rxjs/operators';
 
+import { QuoteStatus, QUOTE_STATUSES } from '../../../models/quote.model';
 import {
   ConfirmDialogComponent,
   ConfirmDialogData,
 } from '../../../shared/confirm-dialog/confirm-dialog.component';
-import { TruncateLongWordsPipe } from '../../../shared/pipes/truncate-long-words.pipe';
-import { EditFieldInvalidPipe } from '../../../shared/pipes/edit-field-invalid.pipe';
 import { FeatureSwitcherComponent } from '../../../shared/feature-switcher/feature-switcher.component';
-import { CustomerActions } from '../store/customer.actions';
+import { EditFieldInvalidPipe } from '../../../shared/pipes/edit-field-invalid.pipe';
+import { TruncateLongWordsPipe } from '../../../shared/pipes/truncate-long-words.pipe';
+import { QuoteActions } from '../store/quote.actions';
 import {
-  selectCustomerTableRows,
   selectError,
   selectLoading,
+  selectQuoteTableRows,
   selectSaving,
-} from '../store/customer.selectors';
+} from '../store/quote.selectors';
 
-interface CustomerTableRow {
+interface QuoteTableRow {
   id: number;
-  firstName: string;
-  lastName: string;
-  addressSearchText: string;
+  customerId: number;
+  customerFullName: string;
+  amount: number;
+  status: QuoteStatus;
+  createdDate: string;
 }
 
 @Component({
-  selector: 'app-customer-landing',
+  selector: 'app-quote-landing',
   imports: [
     AsyncPipe,
+    CurrencyPipe,
+    DatePipe,
     EditFieldInvalidPipe,
     FeatureSwitcherComponent,
     FormsModule,
@@ -60,9 +65,9 @@ interface CustomerTableRow {
     RouterLink,
     TruncateLongWordsPipe,
   ],
-  templateUrl: './customer-landing.component.html',
+  templateUrl: './quote-landing.component.html',
 })
-export class CustomerLandingComponent implements OnInit {
+export class QuoteLandingComponent implements OnInit {
   private readonly store = inject(Store);
   private readonly dialog = inject(MatDialog);
   private readonly actions$ = inject(Actions);
@@ -71,25 +76,28 @@ export class CustomerLandingComponent implements OnInit {
 
   readonly displayedColumns = [
     'id',
-    'firstName',
-    'lastName',
-    'addresses',
+    'customerId',
+    'customerFullName',
+    'amount',
+    'status',
+    'createdDate',
     'actions',
   ] as const;
 
-  readonly dataSource = new MatTableDataSource<CustomerTableRow>([]);
+  readonly dataSource = new MatTableDataSource<QuoteTableRow>([]);
   readonly pageSizeOptions = [5, 10, 25];
+  readonly quoteStatuses = QUOTE_STATUSES;
   readonly loading$ = this.store.select(selectLoading);
   readonly saving$ = this.store.select(selectSaving);
   readonly error$ = this.store.select(selectError);
 
-  editingCustomerId: number | null = null;
-  editFirstName = '';
-  editLastName = '';
+  editingQuoteId: number | null = null;
+  editAmount: string | number = '';
+  editStatus: QuoteStatus = 'Draft';
   editAttempted = false;
 
   readonly editInputBaseClass =
-    'w-full min-w-36 rounded-md border px-2 py-1 text-base font-medium outline-none ring-2';
+    'w-full min-w-28 rounded-md border px-2 py-1 text-base outline-none ring-2';
   readonly editInputValidClass =
     'border-cyan-300/80 bg-cyan-50 text-slate-900 ring-cyan-200/70 focus:border-cyan-500 focus:bg-white focus:ring-cyan-300';
   readonly editInputInvalidClass =
@@ -102,35 +110,36 @@ export class CustomerLandingComponent implements OnInit {
         return true;
       }
 
-      return [row.firstName, row.lastName, row.addressSearchText]
+      return [
+        String(row.id),
+        String(row.customerId),
+        row.customerFullName,
+        String(row.amount),
+        row.status,
+        row.createdDate,
+      ]
         .join(' ')
         .toLowerCase()
         .includes(term);
     };
 
     this.store
-      .select(selectCustomerTableRows)
+      .select(selectQuoteTableRows)
       .pipe(takeUntilDestroyed())
-      .subscribe((customers) => {
-        this.dataSource.data = customers;
+      .subscribe((quotes) => {
+        this.dataSource.data = quotes;
       });
 
     this.actions$
-      .pipe(
-        ofType(CustomerActions.updateCustomerSuccess),
-        takeUntilDestroyed(),
-      )
+      .pipe(ofType(QuoteActions.updateQuoteSuccess), takeUntilDestroyed())
       .subscribe(() => {
         this.cancelEdit();
       });
 
     this.actions$
-      .pipe(
-        ofType(CustomerActions.deleteCustomerSuccess),
-        takeUntilDestroyed(),
-      )
+      .pipe(ofType(QuoteActions.deleteQuoteSuccess), takeUntilDestroyed())
       .subscribe(({ id }) => {
-        if (this.editingCustomerId === id) {
+        if (this.editingQuoteId === id) {
           this.cancelEdit();
         }
       });
@@ -150,7 +159,7 @@ export class CustomerLandingComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.store.dispatch(CustomerActions.loadCustomers());
+    this.store.dispatch(QuoteActions.loadQuotes());
   }
 
   applyFilter(event: Event): void {
@@ -162,45 +171,48 @@ export class CustomerLandingComponent implements OnInit {
     }
   }
 
-  startEdit(row: CustomerTableRow): void {
-    this.editingCustomerId = row.id;
-    this.editFirstName = row.firstName;
-    this.editLastName = row.lastName;
+  startEdit(row: QuoteTableRow): void {
+    this.editingQuoteId = row.id;
+    this.editAmount = String(row.amount);
+    this.editStatus = row.status;
     this.editAttempted = false;
   }
 
   cancelEdit(): void {
-    this.editingCustomerId = null;
-    this.editFirstName = '';
-    this.editLastName = '';
+    this.editingQuoteId = null;
+    this.editAmount = '';
+    this.editStatus = 'Draft';
     this.editAttempted = false;
   }
 
-  saveEdit(row: CustomerTableRow): void {
+  saveEdit(row: QuoteTableRow): void {
     this.editAttempted = true;
-    const firstName = this.editFirstName.trim();
-    const lastName = this.editLastName.trim();
+    const amountText = this.editAmount == null ? '' : String(this.editAmount).trim();
+    const amount = Number(amountText);
 
-    if (!firstName || !lastName) {
+    if (!amountText || !Number.isFinite(amount) || amount < 0) {
       return;
     }
 
     this.store.dispatch(
-      CustomerActions.updateCustomer({
+      QuoteActions.updateQuote({
         id: row.id,
-        firstName,
-        lastName,
+        quote: {
+          customerId: row.customerId,
+          amount,
+          status: this.editStatus,
+        },
       }),
     );
   }
 
-  deleteCustomer(row: CustomerTableRow): void {
+  deleteQuote(row: QuoteTableRow): void {
     const dialogRef = this.dialog.open<ConfirmDialogComponent, ConfirmDialogData, boolean>(
       ConfirmDialogComponent,
       {
         data: {
-          title: 'Delete customer',
-          message: `Delete ${row.firstName} ${row.lastName} and all of their addresses? This cannot be undone.`,
+          title: 'Delete quote',
+          message: `Delete quote #${row.id} for ${row.customerFullName}? This cannot be undone.`,
           confirmLabel: 'Delete',
         },
       },
@@ -210,7 +222,7 @@ export class CustomerLandingComponent implements OnInit {
       .afterClosed()
       .pipe(filter((confirmed): confirmed is true => confirmed === true))
       .subscribe(() => {
-        this.store.dispatch(CustomerActions.deleteCustomer({ id: row.id }));
+        this.store.dispatch(QuoteActions.deleteQuote({ id: row.id }));
       });
   }
 }

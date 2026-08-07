@@ -12,9 +12,7 @@
 
   <div class="relative mx-auto flex min-h-20 max-w-[76.8rem] items-center justify-center px-4 py-5">
     <div class="text-center">
-      <p
-        class="m-0 text-[0.65rem] font-medium uppercase tracking-[0.35em] text-teal-100/80"
-      >
+      <p class="m-0 text-[0.65rem] font-medium uppercase tracking-[0.35em] text-teal-100/80">
         Genasys workspace
       </p>
       <h1 class="m-0 mt-1.5 text-2xl font-medium tracking-tight text-white sm:text-3xl">
@@ -31,15 +29,15 @@
     <div
       class="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200/80 bg-gradient-to-r from-slate-50/90 to-white/40 px-5 py-5 sm:px-6"
     >
-      <app-feature-switcher activeFeature="customers" />
+      <app-feature-switcher activeFeature="quotes" />
       <a
         mat-flat-button
         color="primary"
         class="!rounded-full !px-5"
-        routerLink="/customers/new"
+        routerLink="/quotes/new"
       >
-        <mat-icon>person_add</mat-icon>
-        Create customer
+        <mat-icon>request_quote</mat-icon>
+        Create quote
       </a>
     </div>
 
@@ -47,7 +45,7 @@
       @if (loading$ | async) {
         <div class="flex items-center gap-4 px-3 py-10" role="status" aria-live="polite">
           <mat-spinner diameter="40"></mat-spinner>
-          <span class="text-slate-600">Loading customers…</span>
+          <span class="text-slate-600">Loading quotes…</span>
         </div>
       } @else {
         @if (error$ | async; as error) {
@@ -55,14 +53,14 @@
         } @else {
           <div class="px-3 pb-2 pt-3 sm:px-2">
             <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
-              <mat-label>Filter customers</mat-label>
+              <mat-label>Filter quotes</mat-label>
               <mat-icon matPrefix>search</mat-icon>
               <input
                 matInput
                 type="search"
-                placeholder="First name, last name, or address"
+                placeholder="Quote ID, customer, amount, or status"
                 (keyup)="applyFilter($event)"
-                aria-label="Filter customers by first name, last name, or address"
+                aria-label="Filter quotes"
               />
             </mat-form-field>
           </div>
@@ -74,89 +72,116 @@
               matSortDisableClear
               [dataSource]="dataSource"
               class="w-full"
-              aria-label="Customer list"
+              aria-label="Quote list"
             >
               <ng-container matColumnDef="id">
-                <th mat-header-cell *matHeaderCellDef>ID</th>
-                <td mat-cell *matCellDef="let row" class="!text-slate-500">{{ row.id }}</td>
-              </ng-container>
-
-              <ng-container matColumnDef="firstName">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>First name</th>
-                <td mat-cell *matCellDef="let row" class="!font-medium !text-slate-900">
-                  @if (editingCustomerId === row.id) {
-                    <div class="relative flex flex-col py-1 pb-5">
-                      <input
-                        [class]="editInputBaseClass"
-                        [ngClass]="
-                          (editFirstName | editFieldInvalid: editAttempted)
-                            ? editInputInvalidClass
-                            : editInputValidClass
-                        "
-                        [(ngModel)]="editFirstName"
-                        name="editFirstName-{{ row.id }}"
-                        required
-                        aria-label="First name"
-                        [attr.aria-invalid]="editFirstName | editFieldInvalid: editAttempted"
-                      />
-                      <span
-                        class="absolute left-0 top-[calc(100%-1.1rem)] text-xs font-normal text-red-600"
-                        [class.invisible]="!(editFirstName | editFieldInvalid: editAttempted)"
-                        role="alert"
-                      >
-                        First name is required
-                      </span>
-                    </div>
-                  } @else {
-                    {{ row.firstName | truncateLongWords }}
-                  }
+                <th
+                  mat-header-cell
+                  *matHeaderCellDef
+                  mat-sort-header
+                  class="!min-w-24 !whitespace-nowrap"
+                >
+                  Quote ID
+                </th>
+                <td mat-cell *matCellDef="let row" class="!min-w-24 !whitespace-nowrap !text-slate-500">
+                  {{ row.id }}
                 </td>
               </ng-container>
 
-              <ng-container matColumnDef="lastName">
-                <th mat-header-cell *matHeaderCellDef mat-sort-header>Last name</th>
-                <td mat-cell *matCellDef="let row" class="!font-medium !text-slate-900">
-                  @if (editingCustomerId === row.id) {
-                    <div class="relative flex flex-col py-1 pb-5">
-                      <input
-                        [class]="editInputBaseClass"
-                        [ngClass]="
-                          (editLastName | editFieldInvalid: editAttempted)
-                            ? editInputInvalidClass
-                            : editInputValidClass
-                        "
-                        [(ngModel)]="editLastName"
-                        name="editLastName-{{ row.id }}"
-                        required
-                        aria-label="Last name"
-                        [attr.aria-invalid]="editLastName | editFieldInvalid: editAttempted"
-                      />
-                      <span
-                        class="absolute left-0 top-[calc(100%-1.1rem)] text-xs font-normal text-red-600"
-                        [class.invisible]="!(editLastName | editFieldInvalid: editAttempted)"
-                        role="alert"
-                      >
-                        Last name is required
-                      </span>
-                    </div>
-                  } @else {
-                    {{ row.lastName | truncateLongWords }}
-                  }
-                </td>
-              </ng-container>
-
-              <ng-container matColumnDef="addresses">
-                <th mat-header-cell *matHeaderCellDef class="text-center">Addresses</th>
-                <td mat-cell *matCellDef="let row" class="text-center">
+              <ng-container matColumnDef="customerId">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header class="!whitespace-nowrap">
+                  Customer ID
+                </th>
+                <td mat-cell *matCellDef="let row">
                   <a
-                    mat-icon-button
-                    color="primary"
-                    class="!transition-transform hover:!-translate-y-0.5"
-                    [routerLink]="['/customers', row.id, 'addresses']"
-                    [attr.aria-label]="'View addresses for ' + row.firstName + ' ' + row.lastName"
+                    class="font-medium text-teal-700 underline-offset-2 hover:underline"
+                    [routerLink]="['/customers', row.customerId, 'addresses']"
+                    [attr.aria-label]="'View customer ' + row.customerId"
                   >
-                    <mat-icon>location_on</mat-icon>
+                    {{ row.customerId }}
                   </a>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="customerFullName">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Customer</th>
+                <td mat-cell *matCellDef="let row" class="!font-medium !text-slate-900">
+                  {{ row.customerFullName | truncateLongWords }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="amount">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Amount</th>
+                <td mat-cell *matCellDef="let row" class="!font-medium !text-slate-900">
+                  @if (editingQuoteId === row.id) {
+                    <div class="relative flex flex-col py-1 pb-5">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        [class]="editInputBaseClass"
+                        [ngClass]="
+                          (editAmount | editFieldInvalid: editAttempted)
+                            ? editInputInvalidClass
+                            : editInputValidClass
+                        "
+                        [(ngModel)]="editAmount"
+                        name="editAmount-{{ row.id }}"
+                        required
+                        aria-label="Amount"
+                        [attr.aria-invalid]="editAmount | editFieldInvalid: editAttempted"
+                      />
+                      <span
+                        class="absolute left-0 top-[calc(100%-1.1rem)] text-xs font-normal text-red-600"
+                        [class.invisible]="!(editAmount | editFieldInvalid: editAttempted)"
+                        role="alert"
+                      >
+                        Amount is required
+                      </span>
+                    </div>
+                  } @else {
+                    {{ row.amount | currency: 'ZAR' : 'symbol-narrow' : '1.2-2' }}
+                  }
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+                <td mat-cell *matCellDef="let row">
+                  @if (editingQuoteId === row.id) {
+                    <div class="relative flex flex-col py-1 pb-5">
+                      <select
+                        [class]="editInputBaseClass + ' min-w-28'"
+                        [ngClass]="editInputValidClass"
+                        [(ngModel)]="editStatus"
+                        name="editStatus-{{ row.id }}"
+                        aria-label="Status"
+                      >
+                        @for (status of quoteStatuses; track status) {
+                          <option [ngValue]="status">{{ status }}</option>
+                        }
+                      </select>
+                    </div>
+                  } @else {
+                    <span
+                      class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium"
+                      [ngClass]="{
+                        'bg-slate-100 text-slate-700': row.status === 'Draft',
+                        'bg-cyan-100 text-cyan-800': row.status === 'Sent',
+                        'bg-teal-100 text-teal-800': row.status === 'Accepted',
+                        'bg-red-100 text-red-700': row.status === 'Rejected',
+                      }"
+                    >
+                      {{ row.status }}
+                    </span>
+                  }
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="createdDate">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Created</th>
+                <td mat-cell *matCellDef="let row" class="!text-slate-600">
+                  {{ row.createdDate | date: 'mediumDate' }}
                 </td>
               </ng-container>
 
@@ -164,13 +189,13 @@
                 <th mat-header-cell *matHeaderCellDef class="!text-left">Actions</th>
                 <td mat-cell *matCellDef="let row" class="!text-left">
                   <div class="inline-flex items-center justify-start gap-1">
-                    @if (editingCustomerId === row.id) {
+                    @if (editingQuoteId === row.id) {
                       <button
                         mat-icon-button
                         color="primary"
                         type="button"
                         matTooltip="Save"
-                        aria-label="Save customer"
+                        aria-label="Save quote"
                         [disabled]="saving$ | async"
                         (click)="saveEdit(row)"
                       >
@@ -192,8 +217,8 @@
                         color="primary"
                         type="button"
                         matTooltip="Edit"
-                        [attr.aria-label]="'Edit ' + row.firstName + ' ' + row.lastName"
-                        [disabled]="editingCustomerId !== null || (saving$ | async)"
+                        [attr.aria-label]="'Edit quote ' + row.id"
+                        [disabled]="editingQuoteId !== null || (saving$ | async)"
                         (click)="startEdit(row)"
                       >
                         <mat-icon>edit</mat-icon>
@@ -203,9 +228,9 @@
                         color="warn"
                         type="button"
                         matTooltip="Delete"
-                        [attr.aria-label]="'Delete ' + row.firstName + ' ' + row.lastName"
-                        [disabled]="editingCustomerId !== null || (saving$ | async)"
-                        (click)="deleteCustomer(row)"
+                        [attr.aria-label]="'Delete quote ' + row.id"
+                        [disabled]="editingQuoteId !== null || (saving$ | async)"
+                        (click)="deleteQuote(row)"
                       >
                         <mat-icon>delete</mat-icon>
                       </button>
@@ -219,7 +244,7 @@
                 mat-row
                 *matRowDef="let row; columns: displayedColumns"
                 class="hover:!bg-teal-50/70"
-                [ngClass]="editingCustomerId === row.id ? 'bg-cyan-50/80' : ''"
+                [ngClass]="editingQuoteId === row.id ? 'bg-cyan-50/80' : ''"
               ></tr>
 
               <tr class="mat-row" *matNoDataRow>
@@ -227,7 +252,7 @@
                   class="mat-cell px-4 py-10 text-center text-slate-500"
                   [attr.colspan]="displayedColumns.length"
                 >
-                  No customers found.
+                  No quotes found.
                 </td>
               </tr>
             </table>
@@ -237,7 +262,7 @@
               [pageSize]="10"
               [pageSizeOptions]="pageSizeOptions"
               showFirstLastButtons
-              aria-label="Select customer page"
+              aria-label="Select quote page"
             ></mat-paginator>
           </div>
         }

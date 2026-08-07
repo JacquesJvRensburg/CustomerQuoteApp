@@ -6,7 +6,7 @@
     aria-hidden="true"
   ></div>
 
-  <div class="relative mx-auto flex min-h-16 max-w-3xl items-center gap-2 px-4 py-3">
+  <div class="relative mx-auto flex min-h-16 max-w-[57.6rem] items-center gap-2 px-4 py-3">
     <a
       mat-icon-button
       class="!text-white"
@@ -24,7 +24,7 @@
   </div>
 </header>
 
-<main class="animate-fade-up mx-auto max-w-3xl px-4 py-8">
+<main class="animate-fade-up mx-auto max-w-[57.6rem] px-4 py-8">
   <section
     class="overflow-hidden rounded-2xl border border-white/70 bg-white/85 shadow-xl shadow-slate-900/5 backdrop-blur-md"
   >
@@ -39,8 +39,8 @@
 
     <div class="px-5 py-6 sm:px-6">
       <form class="flex flex-col gap-8" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-        <section class="grid gap-4 sm:grid-cols-2">
-          <mat-form-field appearance="outline" class="w-full">
+        <section class="grid items-start gap-4 sm:grid-cols-2">
+          <mat-form-field appearance="outline" class="w-full" subscriptSizing="fixed">
             <mat-label>First name</mat-label>
             <input matInput formControlName="firstName" autocomplete="given-name" required />
             @if (
@@ -56,7 +56,7 @@
             }
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="w-full">
+          <mat-form-field appearance="outline" class="w-full" subscriptSizing="fixed">
             <mat-label>Last name</mat-label>
             <input matInput formControlName="lastName" autocomplete="family-name" required />
             @if (
@@ -97,8 +97,8 @@
                 </button>
               </div>
 
-              <div class="grid gap-4 sm:grid-cols-2">
-                <mat-form-field appearance="outline" class="w-full sm:col-span-2">
+              <div class="grid items-start gap-4 sm:grid-cols-2">
+                <mat-form-field appearance="outline" class="w-full sm:col-span-2" subscriptSizing="fixed">
                   <mat-label>Street</mat-label>
                   <input matInput formControlName="street" autocomplete="street-address" required />
                   @if (
@@ -114,7 +114,7 @@
                   }
                 </mat-form-field>
 
-                <mat-form-field appearance="outline" class="w-full">
+                <mat-form-field appearance="outline" class="w-full" subscriptSizing="fixed">
                   <mat-label>Suburb</mat-label>
                   <input matInput formControlName="suburb" required />
                   @if (
@@ -130,7 +130,7 @@
                   }
                 </mat-form-field>
 
-                <mat-form-field appearance="outline" class="w-full">
+                <mat-form-field appearance="outline" class="w-full" subscriptSizing="fixed">
                   <mat-label>City</mat-label>
                   <input matInput formControlName="city" autocomplete="address-level2" required />
                   @if (
@@ -146,7 +146,7 @@
                   }
                 </mat-form-field>
 
-                <mat-form-field appearance="outline" class="w-full sm:col-span-2">
+                <mat-form-field appearance="outline" class="w-full sm:col-span-2" subscriptSizing="fixed">
                   <mat-label>Postal code</mat-label>
                   <input matInput formControlName="postalCode" autocomplete="postal-code" required />
                   @if (

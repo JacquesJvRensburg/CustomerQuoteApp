@@ -4,7 +4,8 @@ import { Pipe, PipeTransform } from '@angular/core';
   name: 'editFieldInvalid',
 })
 export class EditFieldInvalidPipe implements PipeTransform {
-  transform(value: string | null | undefined, editAttempted: boolean): boolean {
-    return editAttempted && !(value ?? '').trim();
+  transform(value: string | number | null | undefined, editAttempted: boolean): boolean {
+    const text = value == null ? '' : String(value);
+    return editAttempted && !text.trim();
   }
 }

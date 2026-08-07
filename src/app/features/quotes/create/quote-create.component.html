@@ -1,0 +1,139 @@
+<header
+  class="animate-fade-in relative overflow-hidden border-b border-teal-900/20 bg-gradient-to-br from-teal-900 via-teal-800 to-cyan-800 text-white shadow-lg shadow-teal-900/20"
+>
+  <div
+    class="pointer-events-none absolute -right-10 -top-16 h-40 w-40 rounded-full bg-cyan-400/20 blur-3xl"
+    aria-hidden="true"
+  ></div>
+
+  <div class="relative mx-auto flex min-h-16 max-w-[57.6rem] items-center gap-2 px-4 py-3">
+    <a
+      mat-icon-button
+      class="!text-white"
+      routerLink="/quotes"
+      aria-label="Back to quotes"
+    >
+      <mat-icon>arrow_back</mat-icon>
+    </a>
+    <div>
+      <p class="m-0 text-[0.65rem] font-medium uppercase tracking-[0.28em] text-teal-100/75">
+        New record
+      </p>
+      <h1 class="m-0 text-xl font-medium tracking-tight text-white">Create quote</h1>
+    </div>
+  </div>
+</header>
+
+<main class="animate-fade-up mx-auto max-w-[57.6rem] px-4 py-8">
+  <section
+    class="overflow-hidden rounded-2xl border border-white/70 bg-white/85 shadow-xl shadow-slate-900/5 backdrop-blur-md"
+  >
+    <div class="border-b border-slate-200/80 bg-gradient-to-r from-slate-50/90 to-white/40 px-5 py-5 sm:px-6">
+      <div class="border-l-4 border-teal-600 pl-4">
+        <h2 class="m-0 text-xl font-medium tracking-tight text-slate-900">New quote</h2>
+        <p class="m-0 mt-1 text-sm text-slate-500">
+          Link a customer and set the amount and status. Quote ID and created date are assigned
+          automatically.
+        </p>
+      </div>
+    </div>
+
+    <div class="px-5 py-6 sm:px-6">
+      <form class="flex flex-col gap-8" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <section class="grid items-start gap-4 sm:grid-cols-2">
+          <mat-form-field appearance="outline" class="w-full sm:col-span-2" subscriptSizing="fixed">
+            <mat-label>Customer</mat-label>
+            <mat-select formControlName="customerId" required>
+              @for (customer of customerOptions; track customer.id) {
+                <mat-option [value]="customer.id">
+                  {{ customer.id }} — {{ customer.fullName }}
+                </mat-option>
+              }
+            </mat-select>
+            @if (
+              form.controls.customerId.errors
+                | hasFormError: 'required' : form.controls.customerId.touched : submitted
+            ) {
+              <mat-error>Customer is required</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full" subscriptSizing="fixed">
+            <mat-label>Amount</mat-label>
+            <input
+              matInput
+              type="number"
+              formControlName="amount"
+              min="0"
+              step="0.01"
+              required
+            />
+            @if (
+              form.controls.amount.errors
+                | hasFormError: 'required' : form.controls.amount.touched : submitted
+            ) {
+              <mat-error>Amount is required</mat-error>
+            } @else if (
+              form.controls.amount.errors
+                | hasFormError: 'min' : form.controls.amount.touched : submitted
+            ) {
+              <mat-error>Amount cannot be negative</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full" subscriptSizing="fixed">
+            <mat-label>Status</mat-label>
+            <mat-select formControlName="status" required>
+              @for (status of quoteStatuses; track status) {
+                <mat-option [value]="status">{{ status }}</mat-option>
+              }
+            </mat-select>
+            @if (
+              form.controls.status.errors
+                | hasFormError: 'required' : form.controls.status.touched : submitted
+            ) {
+              <mat-error>Status is required</mat-error>
+            }
+          </mat-form-field>
+        </section>
+
+        @if (submitted && form.invalid) {
+          <p class="m-0 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+            Please complete all required fields before saving.
+          </p>
+        }
+
+        @if (customerOptions.length === 0) {
+          <p class="m-0 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800" role="status">
+            No customers available.
+            <a class="font-medium underline" routerLink="/customers/new">Create a customer</a>
+            first.
+          </p>
+        }
+
+        @if (error$ | async; as error) {
+          <p class="m-0 text-red-700" role="alert">{{ error }}</p>
+        }
+
+        <div
+          class="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200/80 pt-5"
+        >
+          <a mat-button routerLink="/quotes">Cancel</a>
+          <button
+            mat-flat-button
+            color="primary"
+            type="submit"
+            class="!rounded-full !px-5"
+            [disabled]="(saving$ | async) || customerOptions.length === 0"
+          >
+            @if (saving$ | async) {
+              <mat-spinner class="inline-block" diameter="20"></mat-spinner>
+            } @else {
+              Save quote
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </section>
+</main>
