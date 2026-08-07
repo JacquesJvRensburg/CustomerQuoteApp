@@ -15,6 +15,12 @@ export const selectCustomerTableRows = createSelector(selectCustomers, (customer
     id: customer.id,
     firstName: customer.firstName,
     lastName: customer.lastName,
+    addressSearchText: customer.addresses
+      .map(
+        (address) =>
+          `${address.street} ${address.suburb} ${address.city} ${address.postalCode}`,
+      )
+      .join(' '),
   })),
 );
 

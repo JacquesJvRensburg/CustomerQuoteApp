@@ -1,19 +1,44 @@
-<mat-toolbar color="primary">
-  <a mat-icon-button class="mr-1" routerLink="/" aria-label="Back to customers">
-    <mat-icon>arrow_back</mat-icon>
-  </a>
-  <span>Create customer</span>
-</mat-toolbar>
+<header
+  class="animate-fade-in relative overflow-hidden border-b border-teal-900/20 bg-gradient-to-br from-teal-900 via-teal-800 to-cyan-800 text-white shadow-lg shadow-teal-900/20"
+>
+  <div
+    class="pointer-events-none absolute -right-10 -top-16 h-40 w-40 rounded-full bg-cyan-400/20 blur-3xl"
+    aria-hidden="true"
+  ></div>
 
-<main class="mx-auto max-w-3xl px-4 py-6">
-  <mat-card>
-    <mat-card-header class="mb-4">
-      <mat-card-title>New customer</mat-card-title>
-      <mat-card-subtitle>Enter customer details and at least one address</mat-card-subtitle>
-    </mat-card-header>
+  <div class="relative mx-auto flex min-h-16 max-w-3xl items-center gap-2 px-4 py-3">
+    <a
+      mat-icon-button
+      class="!text-white"
+      routerLink="/"
+      aria-label="Back to customers"
+    >
+      <mat-icon>arrow_back</mat-icon>
+    </a>
+    <div>
+      <p class="m-0 text-[0.65rem] font-medium uppercase tracking-[0.28em] text-teal-100/75">
+        New record
+      </p>
+      <h1 class="m-0 text-xl font-medium tracking-tight text-white">Create customer</h1>
+    </div>
+  </div>
+</header>
 
-    <mat-card-content>
-      <form class="flex flex-col gap-6" [formGroup]="form" (ngSubmit)="submit()">
+<main class="animate-fade-up mx-auto max-w-3xl px-4 py-8">
+  <section
+    class="overflow-hidden rounded-2xl border border-white/70 bg-white/85 shadow-xl shadow-slate-900/5 backdrop-blur-md"
+  >
+    <div class="border-b border-slate-200/80 bg-gradient-to-r from-slate-50/90 to-white/40 px-5 py-5 sm:px-6">
+      <div class="border-l-4 border-teal-600 pl-4">
+        <h2 class="m-0 text-xl font-medium tracking-tight text-slate-900">New customer</h2>
+        <p class="m-0 mt-1 text-sm text-slate-500">
+          Enter customer details and at least one address
+        </p>
+      </div>
+    </div>
+
+    <div class="px-5 py-6 sm:px-6">
+      <form class="flex flex-col gap-8" [formGroup]="form" (ngSubmit)="submit()">
         <section class="grid gap-4 sm:grid-cols-2">
           <mat-form-field appearance="outline" class="w-full">
             <mat-label>First name</mat-label>
@@ -33,10 +58,15 @@
         </section>
 
         <section class="flex flex-col gap-4" formArrayName="addresses">
-          <h2 class="m-0 text-base font-medium">Addresses</h2>
+          <h2 class="m-0 text-sm font-medium uppercase tracking-[0.18em] text-slate-500">
+            Addresses
+          </h2>
 
           @for (address of addresses.controls; track address; let i = $index) {
-            <div class="rounded-lg border border-slate-200 p-4" [formGroupName]="i">
+            <div
+              class="rounded-xl border border-slate-200/90 bg-slate-50/60 p-4 shadow-sm shadow-slate-900/5"
+              [formGroupName]="i"
+            >
               <div class="mb-3 flex items-center justify-between gap-3">
                 <h3 class="m-0 text-sm font-medium text-slate-700">Address {{ i + 1 }}</h3>
                 <button
@@ -88,7 +118,7 @@
           }
 
           <div class="flex justify-start">
-            <button mat-stroked-button type="button" (click)="addAddress()">
+            <button mat-stroked-button type="button" class="!rounded-full" (click)="addAddress()">
               <mat-icon>add_location_alt</mat-icon>
               Add address
             </button>
@@ -99,12 +129,15 @@
           <p class="m-0 text-red-700" role="alert">{{ error }}</p>
         }
 
-        <div class="flex flex-wrap items-center justify-end gap-3">
+        <div
+          class="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200/80 pt-5"
+        >
           <a mat-button routerLink="/">Cancel</a>
           <button
             mat-flat-button
             color="primary"
             type="submit"
+            class="!rounded-full !px-5"
             [disabled]="saving$ | async"
           >
             @if (saving$ | async) {
@@ -115,6 +148,6 @@
           </button>
         </div>
       </form>
-    </mat-card-content>
-  </mat-card>
+    </div>
+  </section>
 </main>
