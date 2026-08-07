@@ -43,9 +43,15 @@
           <mat-form-field appearance="outline" class="w-full">
             <mat-label>First name</mat-label>
             <input matInput formControlName="firstName" autocomplete="given-name" required />
-            @if (showError(form.controls.firstName, 'required')) {
+            @if (
+              form.controls.firstName.errors
+                | hasFormError: 'required' : form.controls.firstName.touched : submitted
+            ) {
               <mat-error>First name is required</mat-error>
-            } @else if (showError(form.controls.firstName, 'maxlength')) {
+            } @else if (
+              form.controls.firstName.errors
+                | hasFormError: 'maxlength' : form.controls.firstName.touched : submitted
+            ) {
               <mat-error>First name must be 100 characters or fewer</mat-error>
             }
           </mat-form-field>
@@ -53,9 +59,15 @@
           <mat-form-field appearance="outline" class="w-full">
             <mat-label>Last name</mat-label>
             <input matInput formControlName="lastName" autocomplete="family-name" required />
-            @if (showError(form.controls.lastName, 'required')) {
+            @if (
+              form.controls.lastName.errors
+                | hasFormError: 'required' : form.controls.lastName.touched : submitted
+            ) {
               <mat-error>Last name is required</mat-error>
-            } @else if (showError(form.controls.lastName, 'maxlength')) {
+            } @else if (
+              form.controls.lastName.errors
+                | hasFormError: 'maxlength' : form.controls.lastName.touched : submitted
+            ) {
               <mat-error>Last name must be 100 characters or fewer</mat-error>
             }
           </mat-form-field>
@@ -89,9 +101,15 @@
                 <mat-form-field appearance="outline" class="w-full sm:col-span-2">
                   <mat-label>Street</mat-label>
                   <input matInput formControlName="street" autocomplete="street-address" required />
-                  @if (showError(address.controls.street, 'required')) {
+                  @if (
+                    address.controls.street.errors
+                      | hasFormError: 'required' : address.controls.street.touched : submitted
+                  ) {
                     <mat-error>Street is required</mat-error>
-                  } @else if (showError(address.controls.street, 'maxlength')) {
+                  } @else if (
+                    address.controls.street.errors
+                      | hasFormError: 'maxlength' : address.controls.street.touched : submitted
+                  ) {
                     <mat-error>Street must be 200 characters or fewer</mat-error>
                   }
                 </mat-form-field>
@@ -99,9 +117,15 @@
                 <mat-form-field appearance="outline" class="w-full">
                   <mat-label>Suburb</mat-label>
                   <input matInput formControlName="suburb" required />
-                  @if (showError(address.controls.suburb, 'required')) {
+                  @if (
+                    address.controls.suburb.errors
+                      | hasFormError: 'required' : address.controls.suburb.touched : submitted
+                  ) {
                     <mat-error>Suburb is required</mat-error>
-                  } @else if (showError(address.controls.suburb, 'maxlength')) {
+                  } @else if (
+                    address.controls.suburb.errors
+                      | hasFormError: 'maxlength' : address.controls.suburb.touched : submitted
+                  ) {
                     <mat-error>Suburb must be 100 characters or fewer</mat-error>
                   }
                 </mat-form-field>
@@ -109,9 +133,15 @@
                 <mat-form-field appearance="outline" class="w-full">
                   <mat-label>City</mat-label>
                   <input matInput formControlName="city" autocomplete="address-level2" required />
-                  @if (showError(address.controls.city, 'required')) {
+                  @if (
+                    address.controls.city.errors
+                      | hasFormError: 'required' : address.controls.city.touched : submitted
+                  ) {
                     <mat-error>City is required</mat-error>
-                  } @else if (showError(address.controls.city, 'maxlength')) {
+                  } @else if (
+                    address.controls.city.errors
+                      | hasFormError: 'maxlength' : address.controls.city.touched : submitted
+                  ) {
                     <mat-error>City must be 100 characters or fewer</mat-error>
                   }
                 </mat-form-field>
@@ -119,9 +149,15 @@
                 <mat-form-field appearance="outline" class="w-full sm:col-span-2">
                   <mat-label>Postal code</mat-label>
                   <input matInput formControlName="postalCode" autocomplete="postal-code" required />
-                  @if (showError(address.controls.postalCode, 'required')) {
+                  @if (
+                    address.controls.postalCode.errors
+                      | hasFormError: 'required' : address.controls.postalCode.touched : submitted
+                  ) {
                     <mat-error>Postal code is required</mat-error>
-                  } @else if (showError(address.controls.postalCode, 'maxlength')) {
+                  } @else if (
+                    address.controls.postalCode.errors
+                      | hasFormError: 'maxlength' : address.controls.postalCode.touched : submitted
+                  ) {
                     <mat-error>Postal code must be 20 characters or fewer</mat-error>
                   }
                 </mat-form-field>

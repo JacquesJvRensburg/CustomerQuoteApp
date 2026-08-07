@@ -19,6 +19,7 @@ import {
   ConfirmDialogData,
 } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { TruncateLongWordsPipe } from '../../../shared/pipes/truncate-long-words.pipe';
+import { EditFieldInvalidPipe } from '../../../shared/pipes/edit-field-invalid.pipe';
 import { CustomerActions } from '../store/customer.actions';
 import {
   selectCustomerById,
@@ -31,6 +32,7 @@ import {
   selector: 'app-customer-addresses',
   imports: [
     AsyncPipe,
+    EditFieldInvalidPipe,
     FormsModule,
     MatButtonModule,
     MatDialogModule,
@@ -77,7 +79,6 @@ export class CustomerAddressesComponent implements OnInit {
   editPostalCode = '';
   editAttempted = false;
 
-  readonly editInputClass = 'w-full rounded-md border px-2 py-1 text-base outline-none ring-2';
   readonly editInputValidClass =
     'border-cyan-300/80 bg-cyan-50 text-slate-900 ring-cyan-200/70 focus:border-cyan-500 focus:bg-white focus:ring-cyan-300';
   readonly editInputInvalidClass =
@@ -106,10 +107,6 @@ export class CustomerAddressesComponent implements OnInit {
     this.store.dispatch(CustomerActions.loadCustomers());
   }
 
-  isEditing(addressId: number): boolean {
-    return this.editingAddressId === addressId;
-  }
-
   startEdit(address: AddressEntity): void {
     this.editingAddressId = address.id;
     this.editStreet = address.street;
@@ -126,20 +123,6 @@ export class CustomerAddressesComponent implements OnInit {
     this.editCity = '';
     this.editPostalCode = '';
     this.editAttempted = false;
-  }
-
-  isEditFieldInvalid(value: string): boolean {
-    return this.editAttempted && !value.trim();
-  }
-
-  editFieldClass(value: string, extraClasses = ''): string {
-    return [
-      this.editInputClass,
-      extraClasses,
-      this.isEditFieldInvalid(value) ? this.editInputInvalidClass : this.editInputValidClass,
-    ]
-      .filter(Boolean)
-      .join(' ');
   }
 
   saveEdit(address: AddressEntity): void {

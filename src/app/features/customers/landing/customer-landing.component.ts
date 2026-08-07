@@ -22,6 +22,7 @@ import {
   ConfirmDialogData,
 } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { TruncateLongWordsPipe } from '../../../shared/pipes/truncate-long-words.pipe';
+import { EditFieldInvalidPipe } from '../../../shared/pipes/edit-field-invalid.pipe';
 import { CustomerActions } from '../store/customer.actions';
 import {
   selectCustomerTableRows,
@@ -41,6 +42,7 @@ interface CustomerTableRow {
   selector: 'app-customer-landing',
   imports: [
     AsyncPipe,
+    EditFieldInvalidPipe,
     FormsModule,
     MatButtonModule,
     MatDialogModule,
@@ -84,7 +86,7 @@ export class CustomerLandingComponent implements OnInit {
   editLastName = '';
   editAttempted = false;
 
-  readonly editInputClass =
+  readonly editInputBaseClass =
     'w-full min-w-36 rounded-md border px-2 py-1 text-base font-medium outline-none ring-2';
   readonly editInputValidClass =
     'border-cyan-300/80 bg-cyan-50 text-slate-900 ring-cyan-200/70 focus:border-cyan-500 focus:bg-white focus:ring-cyan-300';
@@ -158,10 +160,6 @@ export class CustomerLandingComponent implements OnInit {
     }
   }
 
-  isEditing(customerId: number): boolean {
-    return this.editingCustomerId === customerId;
-  }
-
   startEdit(row: CustomerTableRow): void {
     this.editingCustomerId = row.id;
     this.editFirstName = row.firstName;
@@ -174,17 +172,6 @@ export class CustomerLandingComponent implements OnInit {
     this.editFirstName = '';
     this.editLastName = '';
     this.editAttempted = false;
-  }
-
-  isEditFieldInvalid(value: string): boolean {
-    return this.editAttempted && !value.trim();
-  }
-
-  editFieldClass(value: string): string {
-    return [
-      this.editInputClass,
-      this.isEditFieldInvalid(value) ? this.editInputInvalidClass : this.editInputValidClass,
-    ].join(' ');
   }
 
   saveEdit(row: CustomerTableRow): void {

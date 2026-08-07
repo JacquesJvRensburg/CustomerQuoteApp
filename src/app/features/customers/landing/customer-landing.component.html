@@ -87,19 +87,24 @@
               <ng-container matColumnDef="firstName">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>First name</th>
                 <td mat-cell *matCellDef="let row" class="!font-medium !text-slate-900">
-                  @if (isEditing(row.id)) {
+                  @if (editingCustomerId === row.id) {
                     <div class="relative flex flex-col py-1 pb-5">
                       <input
-                        [class]="editFieldClass(editFirstName)"
+                        [class]="editInputBaseClass"
+                        [ngClass]="
+                          (editFirstName | editFieldInvalid: editAttempted)
+                            ? editInputInvalidClass
+                            : editInputValidClass
+                        "
                         [(ngModel)]="editFirstName"
                         name="editFirstName-{{ row.id }}"
                         required
                         aria-label="First name"
-                        [attr.aria-invalid]="isEditFieldInvalid(editFirstName)"
+                        [attr.aria-invalid]="editFirstName | editFieldInvalid: editAttempted"
                       />
                       <span
                         class="absolute left-0 top-[calc(100%-1.1rem)] text-xs font-normal text-red-600"
-                        [class.invisible]="!isEditFieldInvalid(editFirstName)"
+                        [class.invisible]="!(editFirstName | editFieldInvalid: editAttempted)"
                         role="alert"
                       >
                         First name is required
@@ -114,19 +119,24 @@
               <ng-container matColumnDef="lastName">
                 <th mat-header-cell *matHeaderCellDef mat-sort-header>Last name</th>
                 <td mat-cell *matCellDef="let row" class="!font-medium !text-slate-900">
-                  @if (isEditing(row.id)) {
+                  @if (editingCustomerId === row.id) {
                     <div class="relative flex flex-col py-1 pb-5">
                       <input
-                        [class]="editFieldClass(editLastName)"
+                        [class]="editInputBaseClass"
+                        [ngClass]="
+                          (editLastName | editFieldInvalid: editAttempted)
+                            ? editInputInvalidClass
+                            : editInputValidClass
+                        "
                         [(ngModel)]="editLastName"
                         name="editLastName-{{ row.id }}"
                         required
                         aria-label="Last name"
-                        [attr.aria-invalid]="isEditFieldInvalid(editLastName)"
+                        [attr.aria-invalid]="editLastName | editFieldInvalid: editAttempted"
                       />
                       <span
                         class="absolute left-0 top-[calc(100%-1.1rem)] text-xs font-normal text-red-600"
-                        [class.invisible]="!isEditFieldInvalid(editLastName)"
+                        [class.invisible]="!(editLastName | editFieldInvalid: editAttempted)"
                         role="alert"
                       >
                         Last name is required
@@ -157,7 +167,7 @@
                 <th mat-header-cell *matHeaderCellDef class="!text-left">Actions</th>
                 <td mat-cell *matCellDef="let row" class="!text-left">
                   <div class="inline-flex items-center justify-start gap-1">
-                    @if (isEditing(row.id)) {
+                    @if (editingCustomerId === row.id) {
                       <button
                         mat-icon-button
                         color="primary"
@@ -212,7 +222,7 @@
                 mat-row
                 *matRowDef="let row; columns: displayedColumns"
                 class="hover:!bg-teal-50/70"
-                [ngClass]="isEditing(row.id) ? 'bg-cyan-50/80' : ''"
+                [ngClass]="editingCustomerId === row.id ? 'bg-cyan-50/80' : ''"
               ></tr>
 
               <tr class="mat-row" *matNoDataRow>
