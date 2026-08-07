@@ -61,7 +61,8 @@
                 matInput
                 type="search"
                 placeholder="First name, last name, or address"
-                (keyup)="applyFilter($event)"
+                [(ngModel)]="filterValue"
+                (ngModelChange)="applyFilter($event)"
                 aria-label="Filter customers by first name, last name, or address"
               />
             </mat-form-field>

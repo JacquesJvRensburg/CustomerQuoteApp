@@ -28,6 +28,7 @@ import { CustomerActions } from '../store/customer.actions';
 import {
   selectCustomerTableRows,
   selectError,
+  selectFilter,
   selectLoading,
   selectSaving,
 } from '../store/customer.selectors';
@@ -84,6 +85,7 @@ export class CustomerLandingComponent implements OnInit {
   readonly saving$ = this.store.select(selectSaving);
   readonly error$ = this.store.select(selectError);
 
+  filterValue = '';
   editingCustomerId: number | null = null;
   editFirstName = '';
   editLastName = '';
@@ -114,6 +116,15 @@ export class CustomerLandingComponent implements OnInit {
       .pipe(takeUntilDestroyed())
       .subscribe((customers) => {
         this.dataSource.data = customers;
+        this.refreshFilter();
+      });
+
+    this.store
+      .select(selectFilter)
+      .pipe(takeUntilDestroyed())
+      .subscribe((filterValue) => {
+        this.filterValue = filterValue;
+        this.refreshFilter();
       });
 
     this.actions$
@@ -154,13 +165,8 @@ export class CustomerLandingComponent implements OnInit {
     this.store.dispatch(CustomerActions.loadCustomers());
   }
 
-  applyFilter(event: Event): void {
-    const value = (event.target as HTMLInputElement).value ?? '';
-    this.dataSource.filter = value.trim().toLowerCase();
-
-    if (this.dataSource.paginator) {
-      this.dataSource.paginator.firstPage();
-    }
+  applyFilter(value: string): void {
+    this.store.dispatch(CustomerActions.setFilter({ filter: value ?? '' }));
   }
 
   startEdit(row: CustomerTableRow): void {
@@ -213,5 +219,13 @@ export class CustomerLandingComponent implements OnInit {
       .subscribe(() => {
         this.store.dispatch(CustomerActions.deleteCustomer({ id: row.id }));
       });
+  }
+
+  private refreshFilter(): void {
+    this.dataSource.filter = this.filterValue.trim().toLowerCase();
+
+    if (this.dataSource.paginator) {
+      this.dataSource.paginator.firstPage();
+    }
   }
 }

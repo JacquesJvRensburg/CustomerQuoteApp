@@ -8,6 +8,7 @@ export interface CustomersState {
   loading: boolean;
   saving: boolean;
   error: string | null;
+  filter: string;
 }
 
 export const initialCustomersState: CustomersState = {
@@ -15,6 +16,7 @@ export const initialCustomersState: CustomersState = {
   loading: false,
   saving: false,
   error: null,
+  filter: '',
 };
 
 const customersReducer = createReducer(
@@ -99,6 +101,10 @@ const customersReducer = createReducer(
       error,
     }),
   ),
+  on(CustomerActions.setFilter, (state, { filter }) => ({
+    ...state,
+    filter,
+  })),
 );
 
 export const customersFeature = createFeature({

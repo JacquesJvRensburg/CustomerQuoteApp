@@ -17,5 +17,6 @@ export const QuoteActions = createActionGroup({
     'Delete Quote': props<{ id: number }>(),
     'Delete Quote Success': props<{ id: number }>(),
     'Delete Quote Failure': props<{ error: string }>(),
+    'Set Filter': props<{ filter: string; customerIdFilter: number | null }>(),
   },
 });

@@ -8,6 +8,7 @@ export const {
   selectLoading,
   selectSaving,
   selectError,
+  selectFilter,
 } = customersFeature;
 
 export const selectCustomerTableRows = createSelector(selectCustomers, (customers) =>

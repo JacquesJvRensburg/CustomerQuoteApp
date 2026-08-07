@@ -15,6 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Actions, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
+import { combineLatest } from 'rxjs';
 import { filter } from 'rxjs/operators';
 
 import { QuoteStatus, QUOTE_STATUSES } from '../../../models/quote.model';
@@ -27,7 +28,9 @@ import { EditFieldInvalidPipe } from '../../../shared/pipes/edit-field-invalid.p
 import { TruncateLongWordsPipe } from '../../../shared/pipes/truncate-long-words.pipe';
 import { QuoteActions } from '../store/quote.actions';
 import {
+  selectCustomerIdFilter,
   selectError,
+  selectFilter,
   selectLoading,
   selectQuoteTableRows,
   selectSaving,
@@ -126,17 +129,18 @@ export class QuoteLandingComponent implements OnInit {
 
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
       const raw = params.get('customerId');
-      const customerId = raw === null ? NaN : Number(raw);
-
-      if (Number.isInteger(customerId) && customerId > 0) {
-        this.applyCustomerIdFilter(customerId);
+      if (raw === null) {
         return;
       }
 
-      if (this.customerIdFilter !== null) {
-        this.customerIdFilter = null;
-        this.filterValue = '';
-        this.refreshFilter();
+      const customerId = Number(raw);
+      if (Number.isInteger(customerId) && customerId > 0) {
+        this.store.dispatch(
+          QuoteActions.setFilter({
+            filter: String(customerId),
+            customerIdFilter: customerId,
+          }),
+        );
       }
     });
 
@@ -145,6 +149,17 @@ export class QuoteLandingComponent implements OnInit {
       .pipe(takeUntilDestroyed())
       .subscribe((quotes) => {
         this.dataSource.data = quotes;
+        this.refreshFilter();
+      });
+
+    combineLatest([
+      this.store.select(selectFilter),
+      this.store.select(selectCustomerIdFilter),
+    ])
+      .pipe(takeUntilDestroyed())
+      .subscribe(([filterValue, customerIdFilter]) => {
+        this.filterValue = filterValue;
+        this.customerIdFilter = customerIdFilter;
         this.refreshFilter();
       });
 
@@ -187,13 +202,15 @@ export class QuoteLandingComponent implements OnInit {
       this.customerIdFilter !== null &&
       nextValue.trim() === String(this.customerIdFilter)
     ) {
-      this.filterValue = nextValue;
       return;
     }
 
-    this.customerIdFilter = null;
-    this.filterValue = nextValue;
-    this.refreshFilter();
+    this.store.dispatch(
+      QuoteActions.setFilter({
+        filter: nextValue,
+        customerIdFilter: null,
+      }),
+    );
   }
 
   startEdit(row: QuoteTableRow): void {
@@ -251,14 +268,7 @@ export class QuoteLandingComponent implements OnInit {
       });
   }
 
-  private applyCustomerIdFilter(customerId: number): void {
-    this.customerIdFilter = customerId;
-    this.filterValue = String(customerId);
-    this.refreshFilter();
-  }
-
   private refreshFilter(): void {
-    // Toggle filter string so MatTableDataSource re-evaluates the predicate.
     this.dataSource.filter = `${this.filterValue.trim().toLowerCase()}|${this.customerIdFilter ?? ''}`;
 
     if (this.dataSource.paginator) {
