@@ -2,14 +2,14 @@ import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
-import { provideMockActions } from '@ngrx/effects/testing';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
-import { Observable, of, Subject } from 'rxjs';
+import { of, Subject } from 'rxjs';
 
 import { QuoteLandingComponent } from './quote-landing.component';
 import { QuoteActions } from '../store/quote.actions';
 import {
   selectCustomerIdFilter,
+  selectEditingQuoteId,
   selectError,
   selectFilter,
   selectLoading,
@@ -19,7 +19,6 @@ import {
 
 describe('QuoteLandingComponent', () => {
   let store: MockStore;
-  let actions$: Subject<unknown>;
   let dialogOpen: jasmine.Spy;
   let queryParamMap$: Subject<ReturnType<typeof convertToParamMap>>;
 
@@ -35,14 +34,12 @@ describe('QuoteLandingComponent', () => {
   ];
 
   beforeEach(async () => {
-    actions$ = new Subject();
     queryParamMap$ = new Subject();
 
     await TestBed.configureTestingModule({
       imports: [QuoteLandingComponent, NoopAnimationsModule],
       providers: [
         provideRouter([]),
-        provideMockActions(() => actions$ as Observable<unknown>),
         provideMockStore({
           selectors: [
             { selector: selectQuoteTableRows, value: rows },
@@ -51,6 +48,7 @@ describe('QuoteLandingComponent', () => {
             { selector: selectError, value: null },
             { selector: selectFilter, value: '' },
             { selector: selectCustomerIdFilter, value: null },
+            { selector: selectEditingQuoteId, value: null },
           ],
         }),
         {
@@ -111,17 +109,27 @@ describe('QuoteLandingComponent', () => {
     );
   });
 
-  it('should enter and cancel edit mode', () => {
+  it('should enter and cancel edit mode via store actions', () => {
     const fixture = TestBed.createComponent(QuoteLandingComponent);
     const component = fixture.componentInstance;
     fixture.detectChanges();
     queryParamMap$.next(convertToParamMap({}));
+    (store.dispatch as jasmine.Spy).calls.reset();
 
     component.startEdit(rows[0]);
-    expect(component.editingQuoteId).toBe(1);
+    expect(store.dispatch).toHaveBeenCalledWith(QuoteActions.startQuoteEdit({ id: 1 }));
     expect(component.editAmount).toBe('1500');
 
+    store.overrideSelector(selectEditingQuoteId, 1);
+    store.refreshState();
+    expect(component.editingQuoteId).toBe(1);
+
+    (store.dispatch as jasmine.Spy).calls.reset();
     component.cancelEdit();
+    expect(store.dispatch).toHaveBeenCalledWith(QuoteActions.cancelQuoteEdit());
+
+    store.overrideSelector(selectEditingQuoteId, null);
+    store.refreshState();
     expect(component.editingQuoteId).toBeNull();
     expect(component.editAmount).toBe('');
   });
@@ -131,9 +139,9 @@ describe('QuoteLandingComponent', () => {
     const component = fixture.componentInstance;
     fixture.detectChanges();
     queryParamMap$.next(convertToParamMap({}));
-    (store.dispatch as jasmine.Spy).calls.reset();
 
     component.startEdit(rows[0]);
+    (store.dispatch as jasmine.Spy).calls.reset();
     component.editAmount = '';
     component.saveEdit(rows[0]);
 
@@ -146,9 +154,9 @@ describe('QuoteLandingComponent', () => {
     const component = fixture.componentInstance;
     fixture.detectChanges();
     queryParamMap$.next(convertToParamMap({}));
-    (store.dispatch as jasmine.Spy).calls.reset();
 
     component.startEdit(rows[0]);
+    (store.dispatch as jasmine.Spy).calls.reset();
     component.editAmount = '2000.5';
     component.editStatus = 'Sent';
     component.saveEdit(rows[0]);

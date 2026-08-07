@@ -9,7 +9,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { Actions, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { filter, map, switchMap } from 'rxjs/operators';
 
@@ -23,6 +22,7 @@ import { EditFieldInvalidPipe } from '../../../shared/pipes/edit-field-invalid.p
 import { CustomerActions } from '../store/customer.actions';
 import {
   selectCustomerById,
+  selectEditingAddressId,
   selectError,
   selectLoading,
   selectSaving,
@@ -50,7 +50,6 @@ export class CustomerAddressesComponent implements OnInit {
   private readonly store = inject(Store);
   private readonly route = inject(ActivatedRoute);
   private readonly dialog = inject(MatDialog);
-  private readonly actions$ = inject(Actions);
 
   readonly displayedColumns = [
     'street',
@@ -85,20 +84,17 @@ export class CustomerAddressesComponent implements OnInit {
     'border-red-400 bg-red-50 text-slate-900 ring-red-200 focus:border-red-500 focus:bg-white focus:ring-red-300';
 
   constructor() {
-    this.actions$
-      .pipe(ofType(CustomerActions.updateAddressSuccess), takeUntilDestroyed())
-      .subscribe(() => {
-        this.cancelEdit();
-      });
-
-    this.actions$
-      .pipe(ofType(CustomerActions.deleteAddressSuccess), takeUntilDestroyed())
-      .subscribe(({ customer }) => {
-        if (
-          this.editingAddressId !== null &&
-          !customer.addresses.some((address) => address.id === this.editingAddressId)
-        ) {
-          this.cancelEdit();
+    this.store
+      .select(selectEditingAddressId)
+      .pipe(takeUntilDestroyed())
+      .subscribe((editingAddressId) => {
+        this.editingAddressId = editingAddressId;
+        if (editingAddressId === null) {
+          this.editStreet = '';
+          this.editSuburb = '';
+          this.editCity = '';
+          this.editPostalCode = '';
+          this.editAttempted = false;
         }
       });
   }
@@ -108,21 +104,16 @@ export class CustomerAddressesComponent implements OnInit {
   }
 
   startEdit(address: AddressEntity): void {
-    this.editingAddressId = address.id;
     this.editStreet = address.street;
     this.editSuburb = address.suburb;
     this.editCity = address.city;
     this.editPostalCode = address.postalCode;
     this.editAttempted = false;
+    this.store.dispatch(CustomerActions.startAddressEdit({ id: address.id }));
   }
 
   cancelEdit(): void {
-    this.editingAddressId = null;
-    this.editStreet = '';
-    this.editSuburb = '';
-    this.editCity = '';
-    this.editPostalCode = '';
-    this.editAttempted = false;
+    this.store.dispatch(CustomerActions.cancelAddressEdit());
   }
 
   saveEdit(address: AddressEntity): void {

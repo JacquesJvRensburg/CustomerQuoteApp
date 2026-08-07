@@ -9,6 +9,8 @@ export interface CustomersState {
   saving: boolean;
   error: string | null;
   filter: string;
+  editingCustomerId: number | null;
+  editingAddressId: number | null;
 }
 
 export const initialCustomersState: CustomersState = {
@@ -17,6 +19,8 @@ export const initialCustomersState: CustomersState = {
   saving: false,
   error: null,
   filter: '',
+  editingCustomerId: null,
+  editingAddressId: null,
 };
 
 const customersReducer = createReducer(
@@ -71,6 +75,7 @@ const customersReducer = createReducer(
     ),
     saving: false,
     error: null,
+    editingCustomerId: null,
   })),
   on(
     CustomerActions.updateAddressSuccess,
@@ -82,6 +87,7 @@ const customersReducer = createReducer(
       ),
       saving: false,
       error: null,
+      editingAddressId: null,
     }),
   ),
   on(CustomerActions.deleteCustomerSuccess, (state, { id }) => ({
@@ -89,6 +95,7 @@ const customersReducer = createReducer(
     customers: state.customers.filter((customer) => customer.id !== id),
     saving: false,
     error: null,
+    editingCustomerId: state.editingCustomerId === id ? null : state.editingCustomerId,
   })),
   on(
     CustomerActions.updateCustomerFailure,
@@ -104,6 +111,22 @@ const customersReducer = createReducer(
   on(CustomerActions.setFilter, (state, { filter }) => ({
     ...state,
     filter,
+  })),
+  on(CustomerActions.startCustomerEdit, (state, { id }) => ({
+    ...state,
+    editingCustomerId: id,
+  })),
+  on(CustomerActions.cancelCustomerEdit, (state) => ({
+    ...state,
+    editingCustomerId: null,
+  })),
+  on(CustomerActions.startAddressEdit, (state, { id }) => ({
+    ...state,
+    editingAddressId: id,
+  })),
+  on(CustomerActions.cancelAddressEdit, (state) => ({
+    ...state,
+    editingAddressId: null,
   })),
 );
 

@@ -13,7 +13,6 @@ import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { Actions, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { combineLatest } from 'rxjs';
 import { filter } from 'rxjs/operators';
@@ -29,6 +28,7 @@ import { TruncateLongWordsPipe } from '../../../shared/pipes/truncate-long-words
 import { QuoteActions } from '../store/quote.actions';
 import {
   selectCustomerIdFilter,
+  selectEditingQuoteId,
   selectError,
   selectFilter,
   selectLoading,
@@ -73,7 +73,6 @@ interface QuoteTableRow {
 export class QuoteLandingComponent implements OnInit {
   private readonly store = inject(Store);
   private readonly dialog = inject(MatDialog);
-  private readonly actions$ = inject(Actions);
   private readonly route = inject(ActivatedRoute);
   private readonly paginator = viewChild(MatPaginator);
   private readonly sort = viewChild(MatSort);
@@ -163,17 +162,15 @@ export class QuoteLandingComponent implements OnInit {
         this.refreshFilter();
       });
 
-    this.actions$
-      .pipe(ofType(QuoteActions.updateQuoteSuccess), takeUntilDestroyed())
-      .subscribe(() => {
-        this.cancelEdit();
-      });
-
-    this.actions$
-      .pipe(ofType(QuoteActions.deleteQuoteSuccess), takeUntilDestroyed())
-      .subscribe(({ id }) => {
-        if (this.editingQuoteId === id) {
-          this.cancelEdit();
+    this.store
+      .select(selectEditingQuoteId)
+      .pipe(takeUntilDestroyed())
+      .subscribe((editingQuoteId) => {
+        this.editingQuoteId = editingQuoteId;
+        if (editingQuoteId === null) {
+          this.editAmount = '';
+          this.editStatus = 'Draft';
+          this.editAttempted = false;
         }
       });
 
@@ -214,17 +211,14 @@ export class QuoteLandingComponent implements OnInit {
   }
 
   startEdit(row: QuoteTableRow): void {
-    this.editingQuoteId = row.id;
     this.editAmount = String(row.amount);
     this.editStatus = row.status;
     this.editAttempted = false;
+    this.store.dispatch(QuoteActions.startQuoteEdit({ id: row.id }));
   }
 
   cancelEdit(): void {
-    this.editingQuoteId = null;
-    this.editAmount = '';
-    this.editStatus = 'Draft';
-    this.editAttempted = false;
+    this.store.dispatch(QuoteActions.cancelQuoteEdit());
   }
 
   saveEdit(row: QuoteTableRow): void {

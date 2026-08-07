@@ -10,6 +10,7 @@ export interface QuotesState {
   error: string | null;
   filter: string;
   customerIdFilter: number | null;
+  editingQuoteId: number | null;
 }
 
 export const initialQuotesState: QuotesState = {
@@ -19,6 +20,7 @@ export const initialQuotesState: QuotesState = {
   error: null,
   filter: '',
   customerIdFilter: null,
+  editingQuoteId: null,
 };
 
 const quotesReducer = createReducer(
@@ -65,12 +67,14 @@ const quotesReducer = createReducer(
     quotes: state.quotes.map((existing) => (existing.id === quote.id ? quote : existing)),
     saving: false,
     error: null,
+    editingQuoteId: null,
   })),
   on(QuoteActions.deleteQuoteSuccess, (state, { id }) => ({
     ...state,
     quotes: state.quotes.filter((quote) => quote.id !== id),
     saving: false,
     error: null,
+    editingQuoteId: state.editingQuoteId === id ? null : state.editingQuoteId,
   })),
   on(
     QuoteActions.updateQuoteFailure,
@@ -85,6 +89,14 @@ const quotesReducer = createReducer(
     ...state,
     filter,
     customerIdFilter,
+  })),
+  on(QuoteActions.startQuoteEdit, (state, { id }) => ({
+    ...state,
+    editingQuoteId: id,
+  })),
+  on(QuoteActions.cancelQuoteEdit, (state) => ({
+    ...state,
+    editingQuoteId: null,
   })),
 );
 
