@@ -58,9 +58,10 @@
               <input
                 matInput
                 type="search"
-                placeholder="Quote ID, customer, amount, or status"
-                (keyup)="applyFilter($event)"
-                aria-label="Filter quotes"
+                placeholder="Customer, status, or customer ID"
+                [(ngModel)]="filterValue"
+                (ngModelChange)="applyFilter($event)"
+                aria-label="Filter quotes by customer, status, or customer ID"
               />
             </mat-form-field>
           </div>

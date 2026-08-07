@@ -17,7 +17,7 @@ export class QuoteEffects {
     this.actions$.pipe(
       ofType(QuoteActions.loadQuotes),
       switchMap(() =>
-        this.database.ensureQuoteSeedData().pipe(
+        this.database.ensureSeedData().pipe(
           switchMap(() => this.database.getQuotes()),
           map((quotes) => QuoteActions.loadQuotesSuccess({ quotes })),
           catchError((error: unknown) =>

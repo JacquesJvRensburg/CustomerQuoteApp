@@ -12,7 +12,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Actions, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { filter } from 'rxjs/operators';
@@ -71,6 +71,7 @@ export class QuoteLandingComponent implements OnInit {
   private readonly store = inject(Store);
   private readonly dialog = inject(MatDialog);
   private readonly actions$ = inject(Actions);
+  private readonly route = inject(ActivatedRoute);
   private readonly paginator = viewChild(MatPaginator);
   private readonly sort = viewChild(MatSort);
 
@@ -91,6 +92,9 @@ export class QuoteLandingComponent implements OnInit {
   readonly saving$ = this.store.select(selectSaving);
   readonly error$ = this.store.select(selectError);
 
+  filterValue = '';
+  private customerIdFilter: number | null = null;
+
   editingQuoteId: number | null = null;
   editAmount: string | number = '';
   editStatus: QuoteStatus = 'Draft';
@@ -104,30 +108,44 @@ export class QuoteLandingComponent implements OnInit {
     'border-red-400 bg-red-50 text-slate-900 ring-red-200 focus:border-red-500 focus:bg-white focus:ring-red-300';
 
   constructor() {
-    this.dataSource.filterPredicate = (row, filter) => {
-      const term = filter.trim().toLowerCase();
+    this.dataSource.filterPredicate = (row) => {
+      if (this.customerIdFilter !== null) {
+        return row.customerId === this.customerIdFilter;
+      }
+
+      const term = this.filterValue.trim().toLowerCase();
       if (!term) {
         return true;
       }
 
-      return [
-        String(row.id),
-        String(row.customerId),
-        row.customerFullName,
-        String(row.amount),
-        row.status,
-        row.createdDate,
-      ]
+      return [String(row.customerId), row.customerFullName, row.status]
         .join(' ')
         .toLowerCase()
         .includes(term);
     };
+
+    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
+      const raw = params.get('customerId');
+      const customerId = raw === null ? NaN : Number(raw);
+
+      if (Number.isInteger(customerId) && customerId > 0) {
+        this.applyCustomerIdFilter(customerId);
+        return;
+      }
+
+      if (this.customerIdFilter !== null) {
+        this.customerIdFilter = null;
+        this.filterValue = '';
+        this.refreshFilter();
+      }
+    });
 
     this.store
       .select(selectQuoteTableRows)
       .pipe(takeUntilDestroyed())
       .subscribe((quotes) => {
         this.dataSource.data = quotes;
+        this.refreshFilter();
       });
 
     this.actions$
@@ -162,13 +180,20 @@ export class QuoteLandingComponent implements OnInit {
     this.store.dispatch(QuoteActions.loadQuotes());
   }
 
-  applyFilter(event: Event): void {
-    const value = (event.target as HTMLInputElement).value ?? '';
-    this.dataSource.filter = value.trim().toLowerCase();
+  applyFilter(value: string): void {
+    const nextValue = value ?? '';
 
-    if (this.dataSource.paginator) {
-      this.dataSource.paginator.firstPage();
+    if (
+      this.customerIdFilter !== null &&
+      nextValue.trim() === String(this.customerIdFilter)
+    ) {
+      this.filterValue = nextValue;
+      return;
     }
+
+    this.customerIdFilter = null;
+    this.filterValue = nextValue;
+    this.refreshFilter();
   }
 
   startEdit(row: QuoteTableRow): void {
@@ -224,5 +249,20 @@ export class QuoteLandingComponent implements OnInit {
       .subscribe(() => {
         this.store.dispatch(QuoteActions.deleteQuote({ id: row.id }));
       });
+  }
+
+  private applyCustomerIdFilter(customerId: number): void {
+    this.customerIdFilter = customerId;
+    this.filterValue = String(customerId);
+    this.refreshFilter();
+  }
+
+  private refreshFilter(): void {
+    // Toggle filter string so MatTableDataSource re-evaluates the predicate.
+    this.dataSource.filter = `${this.filterValue.trim().toLowerCase()}|${this.customerIdFilter ?? ''}`;
+
+    if (this.dataSource.paginator) {
+      this.dataSource.paginator.firstPage();
+    }
   }
 }

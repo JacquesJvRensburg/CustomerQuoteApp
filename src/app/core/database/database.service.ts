@@ -66,7 +66,7 @@ export class DatabaseService {
     );
   }
 
-  /** Seeds demo customers when the database is empty. */
+  /** Seeds demo customers and quotes when the database is first initialised. */
   ensureSeedData(): Observable<void> {
     return this.getCustomers().pipe(
       switchMap((customers) => {
@@ -122,7 +122,14 @@ export class DatabaseService {
         return from(seedCustomers).pipe(
           concatMap((customer) => this.saveCustomer(customer)),
           last(),
-          map(() => undefined),
+          switchMap(() => this.getCustomers()),
+          switchMap((savedCustomers) =>
+            this.initialize().pipe(
+              map((db) => {
+                this.insertSeedQuotes(db, savedCustomers);
+              }),
+            ),
+          ),
         );
       }),
     );
@@ -260,55 +267,6 @@ export class DatabaseService {
         db.run('DELETE FROM addresses WHERE id = ?', [addressId]);
         this.persist(db);
         return this.getCustomerByIdSync(db, customerId);
-      }),
-    );
-  }
-
-  /** Seeds demo quotes when the quotes table is empty and customers exist. */
-  ensureQuoteSeedData(): Observable<void> {
-    return this.ensureSeedData().pipe(
-      switchMap(() => this.getQuotes()),
-      switchMap((quotes) => {
-        if (quotes.length > 0) {
-          return of(undefined);
-        }
-
-        return this.getCustomers().pipe(
-          switchMap((customers) => {
-            if (customers.length === 0) {
-              return of(undefined);
-            }
-
-            const seedQuotes: Quote[] = [
-              {
-                customerId: customers[0].id,
-                amount: 12500.5,
-                status: 'Draft',
-              },
-              {
-                customerId: customers[0].id,
-                amount: 8900,
-                status: 'Sent',
-              },
-              {
-                customerId: customers[Math.min(1, customers.length - 1)].id,
-                amount: 24500.75,
-                status: 'Accepted',
-              },
-              {
-                customerId: customers[Math.min(2, customers.length - 1)].id,
-                amount: 5600,
-                status: 'Rejected',
-              },
-            ];
-
-            return from(seedQuotes).pipe(
-              concatMap((quote) => this.saveQuote(quote)),
-              last(),
-              map(() => undefined),
-            );
-          }),
-        );
       }),
     );
   }
@@ -567,6 +525,88 @@ export class DatabaseService {
       status: String(row[5] ?? 'Draft') as QuoteStatus,
       createdDate: String(row[6] ?? ''),
     };
+  }
+
+  private insertSeedQuotes(db: Database, customers: CustomerEntity[]): void {
+    if (customers.length === 0) {
+      return;
+    }
+
+    const thabo = customers[0];
+    const sarah = customers[Math.min(1, customers.length - 1)];
+    const james = customers[Math.min(2, customers.length - 1)];
+
+    const seedQuotes: Array<{
+      customerId: number;
+      amount: number;
+      status: QuoteStatus;
+      createdDate: string;
+    }> = [
+      {
+        customerId: thabo.id,
+        amount: 18500,
+        status: 'Accepted',
+        createdDate: this.daysAgoIso(45),
+      },
+      {
+        customerId: thabo.id,
+        amount: 4200.5,
+        status: 'Sent',
+        createdDate: this.daysAgoIso(12),
+      },
+      {
+        customerId: thabo.id,
+        amount: 9800,
+        status: 'Draft',
+        createdDate: this.daysAgoIso(2),
+      },
+      {
+        customerId: sarah.id,
+        amount: 67250,
+        status: 'Accepted',
+        createdDate: this.daysAgoIso(30),
+      },
+      {
+        customerId: sarah.id,
+        amount: 15400.75,
+        status: 'Rejected',
+        createdDate: this.daysAgoIso(20),
+      },
+      {
+        customerId: sarah.id,
+        amount: 22100,
+        status: 'Sent',
+        createdDate: this.daysAgoIso(5),
+      },
+      {
+        customerId: james.id,
+        amount: 31500,
+        status: 'Accepted',
+        createdDate: this.daysAgoIso(60),
+      },
+      {
+        customerId: james.id,
+        amount: 8900,
+        status: 'Draft',
+        createdDate: this.daysAgoIso(1),
+      },
+    ];
+
+    for (const quote of seedQuotes) {
+      db.run(
+        `INSERT INTO quotes (customerId, amount, status, createdDate)
+         VALUES (?, ?, ?, ?)`,
+        [quote.customerId, quote.amount, quote.status, quote.createdDate],
+      );
+    }
+
+    this.persist(db);
+  }
+
+  private daysAgoIso(days: number): string {
+    const date = new Date();
+    date.setUTCDate(date.getUTCDate() - days);
+    return date.toISOString();
   }
 
   private getLastInsertId(db: Database): number {
