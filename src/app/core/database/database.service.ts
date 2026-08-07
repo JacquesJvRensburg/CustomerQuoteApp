@@ -3,7 +3,7 @@ import { from, Observable, of, throwError } from 'rxjs';
 import { concatMap, last, map, switchMap, tap } from 'rxjs/operators';
 import initSqlJs, { Database, ParamsObject, SqlJsStatic } from 'sql.js';
 
-import { Address } from '../../models/address.model';
+import { Address, AddressEntity } from '../../models/address.model';
 import { Customer, CustomerEntity } from '../../models/customer.model';
 import { DATABASE_SCHEMA } from './database.schema';
 
@@ -205,6 +205,64 @@ export class DatabaseService {
     );
   }
 
+  updateCustomerNames(
+    id: number,
+    firstName: string,
+    lastName: string,
+  ): Observable<CustomerEntity> {
+    return this.initialize().pipe(
+      map((db) => {
+        const existing = this.findCustomerRow(db, id);
+        if (!existing) {
+          throw new Error(`Customer with id ${id} not found`);
+        }
+
+        db.run('UPDATE customers SET firstName = ?, lastName = ? WHERE id = ?', [
+          firstName,
+          lastName,
+          id,
+        ]);
+        this.persist(db);
+        return this.getCustomerByIdSync(db, id);
+      }),
+    );
+  }
+
+  updateAddress(address: AddressEntity): Observable<CustomerEntity> {
+    return this.initialize().pipe(
+      map((db) => {
+        const customerId = this.findAddressCustomerId(db, address.id);
+        if (customerId === null) {
+          throw new Error(`Address with id ${address.id} not found`);
+        }
+
+        db.run(
+          `UPDATE addresses
+           SET street = ?, city = ?, suburb = ?, postalCode = ?
+           WHERE id = ?`,
+          [address.street, address.city, address.suburb, address.postalCode, address.id],
+        );
+        this.persist(db);
+        return this.getCustomerByIdSync(db, customerId);
+      }),
+    );
+  }
+
+  deleteAddress(addressId: number): Observable<CustomerEntity> {
+    return this.initialize().pipe(
+      map((db) => {
+        const customerId = this.findAddressCustomerId(db, addressId);
+        if (customerId === null) {
+          throw new Error(`Address with id ${addressId} not found`);
+        }
+
+        db.run('DELETE FROM addresses WHERE id = ?', [addressId]);
+        this.persist(db);
+        return this.getCustomerByIdSync(db, customerId);
+      }),
+    );
+  }
+
   private async openDatabase(): Promise<Database> {
     this.sqlJs = await initSqlJs({
       locateFile: () => '/assets/sql-wasm.wasm',
@@ -271,19 +329,20 @@ export class DatabaseService {
     return row;
   }
 
-  private getAddressesForCustomerSync(db: Database, customerId: number): Address[] {
+  private getAddressesForCustomerSync(db: Database, customerId: number): AddressEntity[] {
     const statement = db.prepare(
-      `SELECT street, city, suburb, postalCode
+      `SELECT id, street, city, suburb, postalCode
        FROM addresses
        WHERE customerId = ?
        ORDER BY id ASC`,
     );
     statement.bind([customerId]);
 
-    const addresses: Address[] = [];
+    const addresses: AddressEntity[] = [];
     while (statement.step()) {
       const row = statement.getAsObject();
       addresses.push({
+        id: Number(row['id'] ?? 0),
         street: String(row['street'] ?? ''),
         city: String(row['city'] ?? ''),
         suburb: String(row['suburb'] ?? ''),
@@ -292,6 +351,20 @@ export class DatabaseService {
     }
     statement.free();
     return addresses;
+  }
+
+  private findAddressCustomerId(db: Database, addressId: number): number | null {
+    const statement = db.prepare('SELECT customerId FROM addresses WHERE id = ?');
+    statement.bind([addressId]);
+
+    if (!statement.step()) {
+      statement.free();
+      return null;
+    }
+
+    const row = statement.getAsObject();
+    statement.free();
+    return Number(row['customerId'] ?? 0) || null;
   }
 
   private getLastInsertId(db: Database): number {

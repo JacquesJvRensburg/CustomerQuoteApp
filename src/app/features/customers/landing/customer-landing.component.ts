@@ -1,7 +1,9 @@
-import { AsyncPipe } from '@angular/common';
+import { AsyncPipe, NgClass } from '@angular/common';
 import { Component, effect, inject, OnInit, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -9,14 +11,22 @@ import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
+import { Actions, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
+import { filter } from 'rxjs/operators';
 
+import {
+  ConfirmDialogComponent,
+  ConfirmDialogData,
+} from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CustomerActions } from '../store/customer.actions';
 import {
   selectCustomerTableRows,
   selectError,
   selectLoading,
+  selectSaving,
 } from '../store/customer.selectors';
 
 interface CustomerTableRow {
@@ -30,7 +40,9 @@ interface CustomerTableRow {
   selector: 'app-customer-landing',
   imports: [
     AsyncPipe,
+    FormsModule,
     MatButtonModule,
+    MatDialogModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
@@ -38,12 +50,16 @@ interface CustomerTableRow {
     MatProgressSpinnerModule,
     MatSortModule,
     MatTableModule,
+    MatTooltipModule,
+    NgClass,
     RouterLink,
   ],
   templateUrl: './customer-landing.component.html',
 })
 export class CustomerLandingComponent implements OnInit {
   private readonly store = inject(Store);
+  private readonly dialog = inject(MatDialog);
+  private readonly actions$ = inject(Actions);
   private readonly paginator = viewChild(MatPaginator);
   private readonly sort = viewChild(MatSort);
 
@@ -52,12 +68,18 @@ export class CustomerLandingComponent implements OnInit {
     'firstName',
     'lastName',
     'addresses',
+    'actions',
   ] as const;
 
   readonly dataSource = new MatTableDataSource<CustomerTableRow>([]);
   readonly pageSizeOptions = [5, 10, 25];
   readonly loading$ = this.store.select(selectLoading);
+  readonly saving$ = this.store.select(selectSaving);
   readonly error$ = this.store.select(selectError);
+
+  editingCustomerId: number | null = null;
+  editFirstName = '';
+  editLastName = '';
 
   constructor() {
     this.dataSource.filterPredicate = (row, filter) => {
@@ -77,6 +99,26 @@ export class CustomerLandingComponent implements OnInit {
       .pipe(takeUntilDestroyed())
       .subscribe((customers) => {
         this.dataSource.data = customers;
+      });
+
+    this.actions$
+      .pipe(
+        ofType(CustomerActions.updateCustomerSuccess),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => {
+        this.cancelEdit();
+      });
+
+    this.actions$
+      .pipe(
+        ofType(CustomerActions.deleteCustomerSuccess),
+        takeUntilDestroyed(),
+      )
+      .subscribe(({ id }) => {
+        if (this.editingCustomerId === id) {
+          this.cancelEdit();
+        }
       });
 
     effect(() => {
@@ -104,5 +146,58 @@ export class CustomerLandingComponent implements OnInit {
     if (this.dataSource.paginator) {
       this.dataSource.paginator.firstPage();
     }
+  }
+
+  isEditing(customerId: number): boolean {
+    return this.editingCustomerId === customerId;
+  }
+
+  startEdit(row: CustomerTableRow): void {
+    this.editingCustomerId = row.id;
+    this.editFirstName = row.firstName;
+    this.editLastName = row.lastName;
+  }
+
+  cancelEdit(): void {
+    this.editingCustomerId = null;
+    this.editFirstName = '';
+    this.editLastName = '';
+  }
+
+  saveEdit(row: CustomerTableRow): void {
+    const firstName = this.editFirstName.trim();
+    const lastName = this.editLastName.trim();
+
+    if (!firstName || !lastName) {
+      return;
+    }
+
+    this.store.dispatch(
+      CustomerActions.updateCustomer({
+        id: row.id,
+        firstName,
+        lastName,
+      }),
+    );
+  }
+
+  deleteCustomer(row: CustomerTableRow): void {
+    const dialogRef = this.dialog.open<ConfirmDialogComponent, ConfirmDialogData, boolean>(
+      ConfirmDialogComponent,
+      {
+        data: {
+          title: 'Delete customer',
+          message: `Delete ${row.firstName} ${row.lastName} and all of their addresses? This cannot be undone.`,
+          confirmLabel: 'Delete',
+        },
+      },
+    );
+
+    dialogRef
+      .afterClosed()
+      .pipe(filter((confirmed): confirmed is true => confirmed === true))
+      .subscribe(() => {
+        this.store.dispatch(CustomerActions.deleteCustomer({ id: row.id }));
+      });
   }
 }
