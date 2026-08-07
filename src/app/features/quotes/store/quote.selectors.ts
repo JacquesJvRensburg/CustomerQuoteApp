@@ -8,6 +8,8 @@ export const {
   selectLoading,
   selectSaving,
   selectError,
+  selectFilter,
+  selectCustomerIdFilter,
 } = quotesFeature;
 
 export const selectQuoteTableRows = createSelector(selectQuotes, (quotes) =>

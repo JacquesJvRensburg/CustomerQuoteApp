@@ -24,5 +24,6 @@ export const CustomerActions = createActionGroup({
     'Delete Address': props<{ addressId: number }>(),
     'Delete Address Success': props<{ customer: CustomerEntity }>(),
     'Delete Address Failure': props<{ error: string }>(),
+    'Set Filter': props<{ filter: string }>(),
   },
 });

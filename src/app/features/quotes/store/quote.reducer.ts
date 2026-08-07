@@ -8,6 +8,8 @@ export interface QuotesState {
   loading: boolean;
   saving: boolean;
   error: string | null;
+  filter: string;
+  customerIdFilter: number | null;
 }
 
 export const initialQuotesState: QuotesState = {
@@ -15,6 +17,8 @@ export const initialQuotesState: QuotesState = {
   loading: false,
   saving: false,
   error: null,
+  filter: '',
+  customerIdFilter: null,
 };
 
 const quotesReducer = createReducer(
@@ -77,6 +81,11 @@ const quotesReducer = createReducer(
       error,
     }),
   ),
+  on(QuoteActions.setFilter, (state, { filter, customerIdFilter }) => ({
+    ...state,
+    filter,
+    customerIdFilter,
+  })),
 );
 
 export const quotesFeature = createFeature({
