@@ -17,6 +17,7 @@ import { RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
 
 import { Customer } from '../../../models/customer.model';
+import { HasFormErrorPipe } from '../../../shared/pipes/has-form-error.pipe';
 import { CustomerActions } from '../store/customer.actions';
 import { selectError, selectSaving } from '../store/customer.selectors';
 
@@ -37,6 +38,7 @@ interface CustomerForm {
   selector: 'app-customer-create',
   imports: [
     AsyncPipe,
+    HasFormErrorPipe,
     MatButtonModule,
     MatFormFieldModule,
     MatIconModule,
@@ -53,6 +55,8 @@ export class CustomerCreateComponent {
 
   readonly saving$ = this.store.select(selectSaving);
   readonly error$ = this.store.select(selectError);
+
+  submitted = false;
 
   readonly form: FormGroup<CustomerForm> = this.formBuilder.nonNullable.group({
     firstName: ['', [Validators.required, Validators.maxLength(100)]],
@@ -77,8 +81,10 @@ export class CustomerCreateComponent {
   }
 
   submit(): void {
+    this.submitted = true;
+    this.form.markAllAsTouched();
+
     if (this.form.invalid) {
-      this.form.markAllAsTouched();
       return;
     }
 
