@@ -1,0 +1,117 @@
+<header
+  class="animate-fade-in relative overflow-hidden border-b border-teal-900/20 bg-gradient-to-br from-teal-900 via-teal-800 to-cyan-800 text-white shadow-lg shadow-teal-900/20"
+>
+  <div
+    class="pointer-events-none absolute -right-10 -top-16 h-40 w-40 rounded-full bg-cyan-400/20 blur-3xl"
+    aria-hidden="true"
+  ></div>
+
+  <div class="relative mx-auto flex min-h-16 max-w-5xl items-center gap-2 px-4 py-3">
+    <a
+      mat-icon-button
+      class="!text-white"
+      routerLink="/"
+      aria-label="Back to customers"
+    >
+      <mat-icon>arrow_back</mat-icon>
+    </a>
+    <div>
+      <p class="m-0 text-[0.65rem] font-medium uppercase tracking-[0.28em] text-teal-100/75">
+        Customer detail
+      </p>
+      <h1 class="m-0 text-xl font-medium tracking-tight text-white">Addresses</h1>
+    </div>
+  </div>
+</header>
+
+<main class="animate-fade-up mx-auto max-w-5xl px-4 py-8">
+  @if (loading$ | async) {
+    <div
+      class="flex items-center gap-4 rounded-2xl border border-white/70 bg-white/80 px-5 py-10 shadow-xl shadow-slate-900/5 backdrop-blur-md"
+      role="status"
+      aria-live="polite"
+    >
+      <mat-spinner diameter="40"></mat-spinner>
+      <span class="text-slate-600">Loading addresses…</span>
+    </div>
+  } @else {
+    @if (error$ | async; as error) {
+      <p class="my-4 text-red-700" role="alert">{{ error }}</p>
+    } @else {
+      @if (customer$ | async; as customer) {
+        <section
+          class="overflow-hidden rounded-2xl border border-white/70 bg-white/85 shadow-xl shadow-slate-900/5 backdrop-blur-md"
+        >
+          <div
+            class="border-b border-slate-200/80 bg-gradient-to-r from-slate-50/90 to-white/40 px-5 py-5 sm:px-6"
+          >
+            <div class="border-l-4 border-teal-600 pl-4">
+              <h2 class="m-0 text-xl font-medium tracking-tight text-slate-900">
+                {{ customer.firstName }} {{ customer.lastName }}
+              </h2>
+              <p class="m-0 mt-1 text-sm text-slate-500">
+                {{ customer.addresses.length }} address{{ customer.addresses.length === 1 ? '' : 'es' }}
+              </p>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto px-2 py-2 sm:px-4 sm:py-3">
+            <table
+              mat-table
+              [dataSource]="customer.addresses"
+              class="w-full"
+              aria-label="Customer addresses"
+            >
+              <ng-container matColumnDef="street">
+                <th mat-header-cell *matHeaderCellDef>Street</th>
+                <td mat-cell *matCellDef="let address" class="!font-medium !text-slate-900">
+                  {{ address.street }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="suburb">
+                <th mat-header-cell *matHeaderCellDef>Suburb</th>
+                <td mat-cell *matCellDef="let address">{{ address.suburb }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="city">
+                <th mat-header-cell *matHeaderCellDef>City</th>
+                <td mat-cell *matCellDef="let address">{{ address.city }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="postalCode">
+                <th mat-header-cell *matHeaderCellDef>Postal code</th>
+                <td mat-cell *matCellDef="let address">{{ address.postalCode }}</td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+              <tr
+                mat-row
+                *matRowDef="let row; columns: displayedColumns"
+                class="hover:!bg-teal-50/70"
+              ></tr>
+
+              <tr class="mat-row" *matNoDataRow>
+                <td
+                  class="mat-cell px-4 py-10 text-center text-slate-500"
+                  [attr.colspan]="displayedColumns.length"
+                >
+                  No addresses found for this customer.
+                </td>
+              </tr>
+            </table>
+          </div>
+        </section>
+      } @else {
+        <section
+          class="rounded-2xl border border-white/70 bg-white/85 px-5 py-6 shadow-xl shadow-slate-900/5 backdrop-blur-md"
+        >
+          <p class="my-2 text-red-700" role="alert">Customer not found.</p>
+          <a mat-flat-button color="primary" class="!rounded-full" routerLink="/">
+            Back to customers
+          </a>
+        </section>
+      }
+    }
+  }
+</main>

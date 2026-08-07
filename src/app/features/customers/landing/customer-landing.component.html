@@ -1,0 +1,145 @@
+<header
+  class="animate-fade-in relative overflow-hidden border-b border-teal-900/20 bg-gradient-to-br from-teal-900 via-teal-800 to-cyan-800 text-white shadow-lg shadow-teal-900/20"
+>
+  <div
+    class="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-cyan-400/20 blur-3xl"
+    aria-hidden="true"
+  ></div>
+  <div
+    class="pointer-events-none absolute -bottom-24 left-10 h-48 w-48 rounded-full bg-teal-300/15 blur-3xl"
+    aria-hidden="true"
+  ></div>
+
+  <div class="relative mx-auto flex min-h-20 max-w-5xl items-center justify-center px-4 py-5">
+    <div class="text-center">
+      <p
+        class="m-0 text-[0.65rem] font-medium uppercase tracking-[0.35em] text-teal-100/80"
+      >
+        Genasys workspace
+      </p>
+      <h1 class="m-0 mt-1.5 text-2xl font-medium tracking-tight text-white sm:text-3xl">
+        Customer Quote App
+      </h1>
+    </div>
+  </div>
+</header>
+
+<main class="animate-fade-up mx-auto max-w-5xl px-4 py-8">
+  <section
+    class="overflow-hidden rounded-2xl border border-white/70 bg-white/80 shadow-xl shadow-slate-900/5 backdrop-blur-md"
+  >
+    <div
+      class="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200/80 bg-gradient-to-r from-slate-50/90 to-white/40 px-5 py-5 sm:px-6"
+    >
+      <div class="border-l-4 border-teal-600 pl-4 text-left">
+        <h2 class="m-0 text-xl font-medium tracking-tight text-slate-900">Customers</h2>
+        <p class="m-0 mt-1 text-sm text-slate-500">Saved customer records</p>
+      </div>
+      <a
+        mat-flat-button
+        color="primary"
+        class="!rounded-full !px-5"
+        routerLink="/customers/new"
+      >
+        <mat-icon>person_add</mat-icon>
+        Create customer
+      </a>
+    </div>
+
+    <div class="px-2 py-2 sm:px-4 sm:py-3">
+      @if (loading$ | async) {
+        <div class="flex items-center gap-4 px-3 py-10" role="status" aria-live="polite">
+          <mat-spinner diameter="40"></mat-spinner>
+          <span class="text-slate-600">Loading customers…</span>
+        </div>
+      } @else {
+        @if (error$ | async; as error) {
+          <p class="my-4 px-3 text-red-700" role="alert">{{ error }}</p>
+        } @else {
+          <div class="px-3 pb-2 pt-3 sm:px-2">
+            <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+              <mat-label>Filter customers</mat-label>
+              <mat-icon matPrefix>search</mat-icon>
+              <input
+                matInput
+                type="search"
+                placeholder="First name, last name, or address"
+                (keyup)="applyFilter($event)"
+                aria-label="Filter customers by first name, last name, or address"
+              />
+            </mat-form-field>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table
+              mat-table
+              matSort
+              matSortDisableClear
+              [dataSource]="dataSource"
+              class="w-full"
+              aria-label="Customer list"
+            >
+              <ng-container matColumnDef="id">
+                <th mat-header-cell *matHeaderCellDef>ID</th>
+                <td mat-cell *matCellDef="let row" class="!text-slate-500">{{ row.id }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="firstName">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>First name</th>
+                <td mat-cell *matCellDef="let row" class="!font-medium !text-slate-900">
+                  {{ row.firstName }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="lastName">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>Last name</th>
+                <td mat-cell *matCellDef="let row" class="!font-medium !text-slate-900">
+                  {{ row.lastName }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="addresses">
+                <th mat-header-cell *matHeaderCellDef class="text-center">Addresses</th>
+                <td mat-cell *matCellDef="let row" class="text-center">
+                  <a
+                    mat-icon-button
+                    color="primary"
+                    class="!transition-transform hover:!-translate-y-0.5"
+                    [routerLink]="['/customers', row.id, 'addresses']"
+                    [attr.aria-label]="'View addresses for ' + row.firstName + ' ' + row.lastName"
+                  >
+                    <mat-icon>location_on</mat-icon>
+                  </a>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+              <tr
+                mat-row
+                *matRowDef="let row; columns: displayedColumns"
+                class="hover:!bg-teal-50/70"
+              ></tr>
+
+              <tr class="mat-row" *matNoDataRow>
+                <td
+                  class="mat-cell px-4 py-10 text-center text-slate-500"
+                  [attr.colspan]="displayedColumns.length"
+                >
+                  No customers found.
+                </td>
+              </tr>
+            </table>
+
+            <mat-paginator
+              class="!bg-transparent"
+              [pageSize]="10"
+              [pageSizeOptions]="pageSizeOptions"
+              showFirstLastButtons
+              aria-label="Select customer page"
+            ></mat-paginator>
+          </div>
+        }
+      }
+    </div>
+  </section>
+</main>

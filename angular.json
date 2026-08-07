@@ -7,7 +7,7 @@
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
-          "style": "scss"
+          "style": "none"
         }
       },
       "root": "",
@@ -29,10 +29,16 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "sql-wasm.wasm",
+                "input": "node_modules/sql.js/dist",
+                "output": "/assets"
               }
             ],
             "styles": [
-              "src/styles.scss"
+              "src/material-theme.scss",
+              "src/styles.css"
             ],
             "scripts": []
           },
@@ -88,10 +94,16 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "sql-wasm.wasm",
+                "input": "node_modules/sql.js/dist",
+                "output": "/assets"
               }
             ],
             "styles": [
-              "src/styles.scss"
+              "src/material-theme.scss",
+              "src/styles.css"
             ],
             "scripts": []
           }
