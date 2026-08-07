@@ -21,7 +21,7 @@ const quotesReducer = createReducer(
   initialQuotesState,
   on(QuoteActions.loadQuotes, (state) => ({
     ...state,
-    loading: true,
+    loading: state.quotes.length === 0,
     error: null,
   })),
   on(QuoteActions.loadQuotesSuccess, (state, { quotes }) => ({

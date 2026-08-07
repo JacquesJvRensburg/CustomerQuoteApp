@@ -21,7 +21,7 @@ const customersReducer = createReducer(
   initialCustomersState,
   on(CustomerActions.loadCustomers, (state) => ({
     ...state,
-    loading: true,
+    loading: state.customers.length === 0,
     error: null,
   })),
   on(CustomerActions.loadCustomersSuccess, (state, { customers }) => ({
