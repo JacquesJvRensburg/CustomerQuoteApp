@@ -47,7 +47,8 @@
           >
             <div class="border-l-4 border-teal-600 pl-4">
               <h2 class="m-0 text-xl font-medium tracking-tight text-slate-900">
-                {{ customer.firstName }} {{ customer.lastName }}
+                {{ customer.firstName | truncateLongWords }}
+                {{ customer.lastName | truncateLongWords }}
               </h2>
               <p class="m-0 mt-1 text-sm text-slate-500">
                 {{ customer.addresses.length }} address{{ customer.addresses.length === 1 ? '' : 'es' }}
@@ -66,14 +67,25 @@
                 <th mat-header-cell *matHeaderCellDef>Street</th>
                 <td mat-cell *matCellDef="let address" class="!font-medium !text-slate-900">
                   @if (isEditing(address.id)) {
-                    <input
-                      class="w-full min-w-36 rounded-md border border-cyan-300/80 bg-cyan-50 px-2 py-1 text-base font-medium text-slate-900 outline-none ring-2 ring-cyan-200/70 focus:border-cyan-500 focus:bg-white focus:ring-cyan-300"
-                      [(ngModel)]="editStreet"
-                      name="editStreet-{{ address.id }}"
-                      aria-label="Street"
-                    />
+                    <div class="relative flex flex-col py-1 pb-5">
+                      <input
+                        [class]="editFieldClass(editStreet, 'min-w-36 font-medium')"
+                        [(ngModel)]="editStreet"
+                        name="editStreet-{{ address.id }}"
+                        required
+                        aria-label="Street"
+                        [attr.aria-invalid]="isEditFieldInvalid(editStreet)"
+                      />
+                      <span
+                        class="absolute left-0 top-[calc(100%-1.1rem)] text-xs font-normal text-red-600"
+                        [class.invisible]="!isEditFieldInvalid(editStreet)"
+                        role="alert"
+                      >
+                        Street is required
+                      </span>
+                    </div>
                   } @else {
-                    {{ address.street }}
+                    {{ address.street | truncateLongWords }}
                   }
                 </td>
               </ng-container>
@@ -82,14 +94,25 @@
                 <th mat-header-cell *matHeaderCellDef>Suburb</th>
                 <td mat-cell *matCellDef="let address">
                   @if (isEditing(address.id)) {
-                    <input
-                      class="w-full min-w-28 rounded-md border border-cyan-300/80 bg-cyan-50 px-2 py-1 text-base text-slate-900 outline-none ring-2 ring-cyan-200/70 focus:border-cyan-500 focus:bg-white focus:ring-cyan-300"
-                      [(ngModel)]="editSuburb"
-                      name="editSuburb-{{ address.id }}"
-                      aria-label="Suburb"
-                    />
+                    <div class="relative flex flex-col py-1 pb-5">
+                      <input
+                        [class]="editFieldClass(editSuburb, 'min-w-28')"
+                        [(ngModel)]="editSuburb"
+                        name="editSuburb-{{ address.id }}"
+                        required
+                        aria-label="Suburb"
+                        [attr.aria-invalid]="isEditFieldInvalid(editSuburb)"
+                      />
+                      <span
+                        class="absolute left-0 top-[calc(100%-1.1rem)] text-xs font-normal text-red-600"
+                        [class.invisible]="!isEditFieldInvalid(editSuburb)"
+                        role="alert"
+                      >
+                        Suburb is required
+                      </span>
+                    </div>
                   } @else {
-                    {{ address.suburb }}
+                    {{ address.suburb | truncateLongWords }}
                   }
                 </td>
               </ng-container>
@@ -98,14 +121,25 @@
                 <th mat-header-cell *matHeaderCellDef>City</th>
                 <td mat-cell *matCellDef="let address">
                   @if (isEditing(address.id)) {
-                    <input
-                      class="w-full min-w-28 rounded-md border border-cyan-300/80 bg-cyan-50 px-2 py-1 text-base text-slate-900 outline-none ring-2 ring-cyan-200/70 focus:border-cyan-500 focus:bg-white focus:ring-cyan-300"
-                      [(ngModel)]="editCity"
-                      name="editCity-{{ address.id }}"
-                      aria-label="City"
-                    />
+                    <div class="relative flex flex-col py-1 pb-5">
+                      <input
+                        [class]="editFieldClass(editCity, 'min-w-28')"
+                        [(ngModel)]="editCity"
+                        name="editCity-{{ address.id }}"
+                        required
+                        aria-label="City"
+                        [attr.aria-invalid]="isEditFieldInvalid(editCity)"
+                      />
+                      <span
+                        class="absolute left-0 top-[calc(100%-1.1rem)] text-xs font-normal text-red-600"
+                        [class.invisible]="!isEditFieldInvalid(editCity)"
+                        role="alert"
+                      >
+                        City is required
+                      </span>
+                    </div>
                   } @else {
-                    {{ address.city }}
+                    {{ address.city | truncateLongWords }}
                   }
                 </td>
               </ng-container>
@@ -114,14 +148,25 @@
                 <th mat-header-cell *matHeaderCellDef>Postal code</th>
                 <td mat-cell *matCellDef="let address">
                   @if (isEditing(address.id)) {
-                    <input
-                      class="w-full min-w-24 rounded-md border border-cyan-300/80 bg-cyan-50 px-2 py-1 text-base text-slate-900 outline-none ring-2 ring-cyan-200/70 focus:border-cyan-500 focus:bg-white focus:ring-cyan-300"
-                      [(ngModel)]="editPostalCode"
-                      name="editPostalCode-{{ address.id }}"
-                      aria-label="Postal code"
-                    />
+                    <div class="relative flex flex-col py-1 pb-5">
+                      <input
+                        [class]="editFieldClass(editPostalCode, 'min-w-24')"
+                        [(ngModel)]="editPostalCode"
+                        name="editPostalCode-{{ address.id }}"
+                        required
+                        aria-label="Postal code"
+                        [attr.aria-invalid]="isEditFieldInvalid(editPostalCode)"
+                      />
+                      <span
+                        class="absolute left-0 top-[calc(100%-1.1rem)] text-xs font-normal text-red-600"
+                        [class.invisible]="!isEditFieldInvalid(editPostalCode)"
+                        role="alert"
+                      >
+                        Postal code is required
+                      </span>
+                    </div>
                   } @else {
-                    {{ address.postalCode }}
+                    {{ address.postalCode | truncateLongWords }}
                   }
                 </td>
               </ng-container>

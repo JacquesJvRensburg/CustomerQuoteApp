@@ -21,6 +21,7 @@ import {
   ConfirmDialogComponent,
   ConfirmDialogData,
 } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { TruncateLongWordsPipe } from '../../../shared/pipes/truncate-long-words.pipe';
 import { CustomerActions } from '../store/customer.actions';
 import {
   selectCustomerTableRows,
@@ -53,6 +54,7 @@ interface CustomerTableRow {
     MatTooltipModule,
     NgClass,
     RouterLink,
+    TruncateLongWordsPipe,
   ],
   templateUrl: './customer-landing.component.html',
 })
@@ -80,6 +82,14 @@ export class CustomerLandingComponent implements OnInit {
   editingCustomerId: number | null = null;
   editFirstName = '';
   editLastName = '';
+  editAttempted = false;
+
+  readonly editInputClass =
+    'w-full min-w-36 rounded-md border px-2 py-1 text-base font-medium outline-none ring-2';
+  readonly editInputValidClass =
+    'border-cyan-300/80 bg-cyan-50 text-slate-900 ring-cyan-200/70 focus:border-cyan-500 focus:bg-white focus:ring-cyan-300';
+  readonly editInputInvalidClass =
+    'border-red-400 bg-red-50 text-slate-900 ring-red-200 focus:border-red-500 focus:bg-white focus:ring-red-300';
 
   constructor() {
     this.dataSource.filterPredicate = (row, filter) => {
@@ -156,15 +166,29 @@ export class CustomerLandingComponent implements OnInit {
     this.editingCustomerId = row.id;
     this.editFirstName = row.firstName;
     this.editLastName = row.lastName;
+    this.editAttempted = false;
   }
 
   cancelEdit(): void {
     this.editingCustomerId = null;
     this.editFirstName = '';
     this.editLastName = '';
+    this.editAttempted = false;
+  }
+
+  isEditFieldInvalid(value: string): boolean {
+    return this.editAttempted && !value.trim();
+  }
+
+  editFieldClass(value: string): string {
+    return [
+      this.editInputClass,
+      this.isEditFieldInvalid(value) ? this.editInputInvalidClass : this.editInputValidClass,
+    ].join(' ');
   }
 
   saveEdit(row: CustomerTableRow): void {
+    this.editAttempted = true;
     const firstName = this.editFirstName.trim();
     const lastName = this.editLastName.trim();
 

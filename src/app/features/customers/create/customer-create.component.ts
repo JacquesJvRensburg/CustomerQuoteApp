@@ -54,6 +54,8 @@ export class CustomerCreateComponent {
   readonly saving$ = this.store.select(selectSaving);
   readonly error$ = this.store.select(selectError);
 
+  submitted = false;
+
   readonly form: FormGroup<CustomerForm> = this.formBuilder.nonNullable.group({
     firstName: ['', [Validators.required, Validators.maxLength(100)]],
     lastName: ['', [Validators.required, Validators.maxLength(100)]],
@@ -76,9 +78,15 @@ export class CustomerCreateComponent {
     this.addresses.removeAt(index);
   }
 
+  showError(control: FormControl<string>, errorCode: string): boolean {
+    return control.hasError(errorCode) && (control.touched || this.submitted);
+  }
+
   submit(): void {
+    this.submitted = true;
+    this.form.markAllAsTouched();
+
     if (this.form.invalid) {
-      this.form.markAllAsTouched();
       return;
     }
 

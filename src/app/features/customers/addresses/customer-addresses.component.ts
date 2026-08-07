@@ -18,6 +18,7 @@ import {
   ConfirmDialogComponent,
   ConfirmDialogData,
 } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { TruncateLongWordsPipe } from '../../../shared/pipes/truncate-long-words.pipe';
 import { CustomerActions } from '../store/customer.actions';
 import {
   selectCustomerById,
@@ -39,6 +40,7 @@ import {
     MatTooltipModule,
     NgClass,
     RouterLink,
+    TruncateLongWordsPipe,
   ],
   templateUrl: './customer-addresses.component.html',
 })
@@ -73,6 +75,13 @@ export class CustomerAddressesComponent implements OnInit {
   editSuburb = '';
   editCity = '';
   editPostalCode = '';
+  editAttempted = false;
+
+  readonly editInputClass = 'w-full rounded-md border px-2 py-1 text-base outline-none ring-2';
+  readonly editInputValidClass =
+    'border-cyan-300/80 bg-cyan-50 text-slate-900 ring-cyan-200/70 focus:border-cyan-500 focus:bg-white focus:ring-cyan-300';
+  readonly editInputInvalidClass =
+    'border-red-400 bg-red-50 text-slate-900 ring-red-200 focus:border-red-500 focus:bg-white focus:ring-red-300';
 
   constructor() {
     this.actions$
@@ -107,6 +116,7 @@ export class CustomerAddressesComponent implements OnInit {
     this.editSuburb = address.suburb;
     this.editCity = address.city;
     this.editPostalCode = address.postalCode;
+    this.editAttempted = false;
   }
 
   cancelEdit(): void {
@@ -115,9 +125,25 @@ export class CustomerAddressesComponent implements OnInit {
     this.editSuburb = '';
     this.editCity = '';
     this.editPostalCode = '';
+    this.editAttempted = false;
+  }
+
+  isEditFieldInvalid(value: string): boolean {
+    return this.editAttempted && !value.trim();
+  }
+
+  editFieldClass(value: string, extraClasses = ''): string {
+    return [
+      this.editInputClass,
+      extraClasses,
+      this.isEditFieldInvalid(value) ? this.editInputInvalidClass : this.editInputValidClass,
+    ]
+      .filter(Boolean)
+      .join(' ');
   }
 
   saveEdit(address: AddressEntity): void {
+    this.editAttempted = true;
     const street = this.editStreet.trim();
     const suburb = this.editSuburb.trim();
     const city = this.editCity.trim();
