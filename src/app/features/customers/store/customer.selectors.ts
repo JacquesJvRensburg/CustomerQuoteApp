@@ -13,6 +13,8 @@ export const {
   selectLoadError: selectCustomersLoadError,
   selectMutationError: selectCustomersMutationError,
   selectFilter: selectCustomersFilter,
+  selectPageIndex: selectCustomersPageIndex,
+  selectPageSize: selectCustomersPageSize,
   selectEditingCustomerId,
   selectEditingAddressId,
   selectDraftNationalityCode,

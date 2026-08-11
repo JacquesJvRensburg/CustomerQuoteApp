@@ -35,6 +35,7 @@ export const CustomerActions = createActionGroup({
     'Delete Address Failure': props<{ error: string }>(),
     'Clear Mutation Error': emptyProps(),
     'Set Filter': props<{ filter: string }>(),
+    'Set Pagination': props<{ pageIndex: number; pageSize: number }>(),
     'Start Customer Edit': props<{ id: number }>(),
     'Cancel Customer Edit': emptyProps(),
     'Start Address Edit': props<{ id: number }>(),

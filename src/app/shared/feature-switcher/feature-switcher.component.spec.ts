@@ -47,4 +47,15 @@ describe('FeatureSwitcherComponent', () => {
       '/quotes',
     );
   });
+
+  it('should include quotesQueryParams on the quotes link', () => {
+    fixture.componentRef.setInput('quotesQueryParams', { customerId: 7 });
+    fixture.detectChanges();
+
+    const quotesLink = fixture.debugElement.queryAll(By.css('a'))[1];
+    const href = quotesLink.attributes['href'] ?? quotesLink.nativeElement.getAttribute('href');
+
+    expect(href).toContain('/quotes');
+    expect(href).toContain('customerId=7');
+  });
 });

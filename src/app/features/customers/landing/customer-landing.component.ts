@@ -1,27 +1,30 @@
 import { AsyncPipe, NgClass, NgOptimizedImage } from '@angular/common';
 import { Component, DestroyRef, effect, inject, OnInit, viewChild } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
-import { combineLatest, filter, take } from 'rxjs';
+import { combineLatest, filter, map, take } from 'rxjs';
 
 import {
   ConfirmDialogComponent,
   ConfirmDialogData,
 } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { DatabaseExportButtonComponent } from '../../../shared/database-export-button/database-export-button.component';
-import { FeatureSwitcherComponent } from '../../../shared/feature-switcher/feature-switcher.component';
+import {
+  FeatureSwitcherComponent,
+  QuotesLinkQueryParams,
+} from '../../../shared/feature-switcher/feature-switcher.component';
 import { EditFieldInvalidPipe } from '../../../shared/pipes/edit-field-invalid.pipe';
 import { TruncatePipe } from '../../../shared/pipes/truncate.pipe';
 import { CustomerNationalityPanelComponent } from '../nationality/customer-nationality-panel.component';
@@ -32,6 +35,8 @@ import {
   selectCustomersLoadError,
   selectCustomersLoading,
   selectCustomersMutationError,
+  selectCustomersPageIndex,
+  selectCustomersPageSize,
   selectCustomersSaving,
   selectDraftNationalityCode,
   selectDraftUniversity,
@@ -39,6 +44,7 @@ import {
   selectFilteredCustomerTableRows,
 } from '../store/customer.selectors';
 import { CustomerUniversityPanelComponent } from '../university/customer-university-panel.component';
+import { selectCustomerIdFilter } from '../../quotes/store/quote.selectors';
 
 @Component({
   selector: 'app-customer-landing',
@@ -91,6 +97,21 @@ export class CustomerLandingComponent implements OnInit {
   readonly saving$ = this.store.select(selectCustomersSaving);
   readonly loadError$ = this.store.select(selectCustomersLoadError);
   readonly mutationError$ = this.store.select(selectCustomersMutationError);
+  readonly pageIndex = toSignal(this.store.select(selectCustomersPageIndex), {
+    initialValue: 0,
+  });
+  readonly pageSize = toSignal(this.store.select(selectCustomersPageSize), {
+    initialValue: 5,
+  });
+  readonly quotesQueryParams = toSignal(
+    this.store.select(selectCustomerIdFilter).pipe(
+      map(
+        (customerId): QuotesLinkQueryParams =>
+          customerId === null ? {} : { customerId },
+      ),
+    ),
+    { initialValue: {} satisfies QuotesLinkQueryParams },
+  );
 
   filterValue = '';
   private lastFilterKey = '';
@@ -167,6 +188,15 @@ export class CustomerLandingComponent implements OnInit {
       this.lastFilterKey = filterKey;
       this.dataSource.paginator?.firstPage();
     }
+  }
+
+  onPage(event: PageEvent): void {
+    this.store.dispatch(
+      CustomerActions.setPagination({
+        pageIndex: event.pageIndex,
+        pageSize: event.pageSize,
+      }),
+    );
   }
 
   dismissMutationError(): void {

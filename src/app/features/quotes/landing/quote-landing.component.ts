@@ -1,20 +1,20 @@
 import { AsyncPipe, CurrencyPipe, DatePipe, NgClass } from '@angular/common';
 import { Component, DestroyRef, effect, inject, OnInit, viewChild } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
-import { filter, take, withLatestFrom } from 'rxjs';
+import { filter, map, take, withLatestFrom } from 'rxjs';
 
 import {
   QuoteEntity,
@@ -27,7 +27,10 @@ import {
   ConfirmDialogData,
 } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { DatabaseExportButtonComponent } from '../../../shared/database-export-button/database-export-button.component';
-import { FeatureSwitcherComponent } from '../../../shared/feature-switcher/feature-switcher.component';
+import {
+  FeatureSwitcherComponent,
+  QuotesLinkQueryParams,
+} from '../../../shared/feature-switcher/feature-switcher.component';
 import { EditFieldInvalidPipe } from '../../../shared/pipes/edit-field-invalid.pipe';
 import { TruncatePipe } from '../../../shared/pipes/truncate.pipe';
 import { QuoteActions } from '../store/quote.actions';
@@ -39,6 +42,8 @@ import {
   selectQuotesLoadError,
   selectQuotesLoading,
   selectQuotesMutationError,
+  selectQuotesPageIndex,
+  selectQuotesPageSize,
   selectQuotesSaving,
 } from '../store/quote.selectors';
 
@@ -72,6 +77,7 @@ export class QuoteLandingComponent implements OnInit {
   private readonly store = inject(Store);
   private readonly dialog = inject(MatDialog);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly paginator = viewChild(MatPaginator);
   private readonly sort = viewChild(MatSort);
@@ -95,6 +101,21 @@ export class QuoteLandingComponent implements OnInit {
   readonly saving$ = this.store.select(selectQuotesSaving);
   readonly loadError$ = this.store.select(selectQuotesLoadError);
   readonly mutationError$ = this.store.select(selectQuotesMutationError);
+  readonly pageIndex = toSignal(this.store.select(selectQuotesPageIndex), {
+    initialValue: 0,
+  });
+  readonly pageSize = toSignal(this.store.select(selectQuotesPageSize), {
+    initialValue: 5,
+  });
+  readonly quotesQueryParams = toSignal(
+    this.store.select(selectCustomerIdFilter).pipe(
+      map(
+        (customerId): QuotesLinkQueryParams =>
+          customerId === null ? {} : { customerId },
+      ),
+    ),
+    { initialValue: {} satisfies QuotesLinkQueryParams },
+  );
 
   filterValue = '';
   private lastFilterKey = '';
@@ -122,28 +143,29 @@ export class QuoteLandingComponent implements OnInit {
 
     this.route.queryParamMap
       .pipe(
-        withLatestFrom(
-          this.store.select(selectCustomerIdFilter),
-          this.store.select(selectQuotesFilter),
-        ),
+        withLatestFrom(this.store.select(selectCustomerIdFilter)),
         takeUntilDestroyed(),
       )
-      .subscribe(([params, customerIdFilter, filterValue]) => {
+      .subscribe(([params, customerIdFilter]) => {
         const raw = params.get('customerId');
         if (raw === null) {
+          // Keep store filter across tab navigation; restore the URL when needed.
           if (customerIdFilter !== null) {
-            this.store.dispatch(
-              QuoteActions.setFilter({
-                filter: filterValue === String(customerIdFilter) ? '' : filterValue,
-                customerIdFilter: null,
-              }),
-            );
+            void this.router.navigate([], {
+              relativeTo: this.route,
+              queryParams: { customerId: customerIdFilter },
+              replaceUrl: true,
+            });
           }
           return;
         }
 
         const customerId = Number(raw);
-        if (Number.isInteger(customerId) && customerId > 0) {
+        if (
+          Number.isInteger(customerId) &&
+          customerId > 0 &&
+          customerId !== customerIdFilter
+        ) {
           this.store.dispatch(
             QuoteActions.setFilter({
               filter: String(customerId),
@@ -215,6 +237,7 @@ export class QuoteLandingComponent implements OnInit {
       return;
     }
 
+    const hadCustomerFilter = this.customerIdFilter !== null;
     this.filterValue = nextValue;
     this.store.dispatch(
       QuoteActions.setFilter({
@@ -223,11 +246,28 @@ export class QuoteLandingComponent implements OnInit {
       }),
     );
 
+    if (hadCustomerFilter) {
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: {},
+        replaceUrl: true,
+      });
+    }
+
     const filterKey = nextValue.trim().toLowerCase();
     if (filterKey !== this.lastFilterKey) {
       this.lastFilterKey = filterKey;
       this.dataSource.paginator?.firstPage();
     }
+  }
+
+  onPage(event: PageEvent): void {
+    this.store.dispatch(
+      QuoteActions.setPagination({
+        pageIndex: event.pageIndex,
+        pageSize: event.pageSize,
+      }),
+    );
   }
 
   dismissMutationError(): void {

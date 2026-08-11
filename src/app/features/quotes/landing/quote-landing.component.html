@@ -29,7 +29,10 @@
     <div
       class="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200/80 bg-gradient-to-r from-slate-50/90 to-white/40 px-5 py-5 sm:px-6"
     >
-      <app-feature-switcher activeFeature="quotes" />
+      <app-feature-switcher
+        activeFeature="quotes"
+        [quotesQueryParams]="quotesQueryParams()"
+      />
       <div class="flex flex-wrap items-center gap-2">
         <app-database-export-button />
         <a
@@ -340,10 +343,12 @@
 
             <mat-paginator
               class="!bg-transparent"
-              [pageSize]="5"
+              [pageIndex]="pageIndex()"
+              [pageSize]="pageSize()"
               [pageSizeOptions]="pageSizeOptions"
               showFirstLastButtons
               aria-label="Select quote page"
+              (page)="onPage($event)"
             ></mat-paginator>
           </div>
         }

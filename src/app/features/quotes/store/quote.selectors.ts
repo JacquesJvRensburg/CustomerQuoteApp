@@ -13,6 +13,8 @@ export const {
   selectMutationError: selectQuotesMutationError,
   selectFilter: selectQuotesFilter,
   selectCustomerIdFilter,
+  selectPageIndex: selectQuotesPageIndex,
+  selectPageSize: selectQuotesPageSize,
   selectEditingQuoteId,
 } = quotesFeature;
 

@@ -3,6 +3,11 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 
 export type FeatureSwitcherValue = 'customers' | 'quotes';
 
+/** Query params forwarded to the Quotes tab link. */
+export type QuotesLinkQueryParams = {
+  customerId?: number;
+};
+
 @Component({
   selector: 'app-feature-switcher',
   imports: [RouterLink, RouterLinkActive],
@@ -29,6 +34,7 @@ export type FeatureSwitcherValue = 'customers' | 'quotes';
       <a
         #featureLink
         routerLink="/quotes"
+        [queryParams]="quotesQueryParams()"
         routerLinkActive="bg-white text-teal-900 shadow-sm shadow-slate-900/10"
         class="min-w-36 rounded-lg px-4 py-2.5 text-left text-slate-500 transition-colors hover:text-slate-700"
         role="radio"
@@ -43,6 +49,8 @@ export type FeatureSwitcherValue = 'customers' | 'quotes';
 })
 export class FeatureSwitcherComponent {
   readonly activeFeature = input.required<FeatureSwitcherValue>();
+  /** Optional query params for the Quotes tab (e.g. sticky customerId filter). */
+  readonly quotesQueryParams = input<QuotesLinkQueryParams>({});
   private readonly featureLinks = viewChildren<ElementRef<HTMLAnchorElement>>('featureLink');
 
   onRadiogroupKeydown(event: KeyboardEvent): void {

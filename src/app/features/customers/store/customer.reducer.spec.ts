@@ -239,8 +239,20 @@ describe('customersReducer', () => {
   });
 
   it('should set filter and edit ids', () => {
-    expect(reducer(initialCustomersState, CustomerActions.setFilter({ filter: 'thabo' })).filter)
-      .toBe('thabo');
+    const filtered = reducer(
+      { ...initialCustomersState, pageIndex: 2 },
+      CustomerActions.setFilter({ filter: 'thabo' }),
+    );
+    expect(filtered.filter).toBe('thabo');
+    expect(filtered.pageIndex).toBe(0);
+
+    const paged = reducer(
+      initialCustomersState,
+      CustomerActions.setPagination({ pageIndex: 3, pageSize: 10 }),
+    );
+    expect(paged.pageIndex).toBe(3);
+    expect(paged.pageSize).toBe(10);
+
     expect(reducer(initialCustomersState, CustomerActions.startAddressEdit({ id: 10 }))
       .editingAddressId).toBe(10);
     expect(

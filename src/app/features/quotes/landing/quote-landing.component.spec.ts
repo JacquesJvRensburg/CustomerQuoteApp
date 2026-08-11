@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { of, Subject } from 'rxjs';
 
@@ -15,6 +15,8 @@ import {
   selectQuotesLoadError,
   selectQuotesLoading,
   selectQuotesMutationError,
+  selectQuotesPageIndex,
+  selectQuotesPageSize,
   selectQuotesSaving,
 } from '../store/quote.selectors';
 
@@ -50,6 +52,8 @@ describe('QuoteLandingComponent', () => {
             { selector: selectQuotesLoadError, value: null },
             { selector: selectQuotesMutationError, value: null },
             { selector: selectQuotesFilter, value: '' },
+            { selector: selectQuotesPageIndex, value: 0 },
+            { selector: selectQuotesPageSize, value: 5 },
             { selector: selectCustomerIdFilter, value: null },
             { selector: selectEditingQuoteId, value: null },
           ],
@@ -92,21 +96,48 @@ describe('QuoteLandingComponent', () => {
     );
   });
 
-  it('should clear sticky customer id filter when query param is absent', () => {
+  it('should dispatch setPagination when the page changes', () => {
+    const fixture = TestBed.createComponent(QuoteLandingComponent);
+    fixture.detectChanges();
+    queryParamMap$.next(convertToParamMap({}));
+    (store.dispatch as jasmine.Spy).calls.reset();
+
+    fixture.componentInstance.onPage({
+      pageIndex: 1,
+      pageSize: 25,
+      length: 40,
+      previousPageIndex: 0,
+    });
+
+    expect(store.dispatch).toHaveBeenCalledWith(
+      QuoteActions.setPagination({ pageIndex: 1, pageSize: 25 }),
+    );
+  });
+
+  it('should restore customer id query param from sticky store filter', () => {
     store.overrideSelector(selectCustomerIdFilter, 2);
     store.overrideSelector(selectQuotesFilter, '2');
     store.refreshState();
 
     const fixture = TestBed.createComponent(QuoteLandingComponent);
+    const router = TestBed.inject(Router);
+    const navigateSpy = spyOn(router, 'navigate').and.resolveTo(true);
     fixture.detectChanges();
     (store.dispatch as jasmine.Spy).calls.reset();
 
     queryParamMap$.next(convertToParamMap({}));
 
-    expect(store.dispatch).toHaveBeenCalledWith(
+    expect(store.dispatch).not.toHaveBeenCalledWith(
       QuoteActions.setFilter({
         filter: '',
         customerIdFilter: null,
+      }),
+    );
+    expect(navigateSpy).toHaveBeenCalledWith(
+      [],
+      jasmine.objectContaining({
+        queryParams: { customerId: 2 },
+        replaceUrl: true,
       }),
     );
   });
@@ -117,9 +148,12 @@ describe('QuoteLandingComponent', () => {
     store.refreshState();
 
     const fixture = TestBed.createComponent(QuoteLandingComponent);
+    const router = TestBed.inject(Router);
+    const navigateSpy = spyOn(router, 'navigate').and.resolveTo(true);
     fixture.detectChanges();
-    queryParamMap$.next(convertToParamMap({}));
+    queryParamMap$.next(convertToParamMap({ customerId: '2' }));
     (store.dispatch as jasmine.Spy).calls.reset();
+    navigateSpy.calls.reset();
 
     fixture.componentInstance.applyFilter('draft');
 
@@ -127,6 +161,13 @@ describe('QuoteLandingComponent', () => {
       QuoteActions.setFilter({
         filter: 'draft',
         customerIdFilter: null,
+      }),
+    );
+    expect(navigateSpy).toHaveBeenCalledWith(
+      [],
+      jasmine.objectContaining({
+        queryParams: {},
+        replaceUrl: true,
       }),
     );
   });
