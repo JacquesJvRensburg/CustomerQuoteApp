@@ -1,17 +1,28 @@
 import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Store } from '@ngrx/store';
 import { of } from 'rxjs';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { catchError, map, switchMap, tap, withLatestFrom } from 'rxjs/operators';
 
+import { CountriesService } from '../../../core/countries/countries.service';
 import { DatabaseService } from '../../../core/database/database.service';
+import { NationalizeService } from '../../../core/nationalize/nationalize.service';
+import { UniversitiesService } from '../../../core/universities/universities.service';
+import { Country, CountryPrediction } from '../../../models/country.model';
+import { countryFlagUrl } from '../../../shared/utils/country-flag.util';
 import { CustomerActions } from './customer.actions';
+import { selectCountries } from './customer.selectors';
 
 @Injectable()
 export class CustomerEffects {
   private readonly actions$ = inject(Actions);
   private readonly database = inject(DatabaseService);
   private readonly router = inject(Router);
+  private readonly store = inject(Store);
+  private readonly countriesService = inject(CountriesService);
+  private readonly nationalizeService = inject(NationalizeService);
+  private readonly universitiesService = inject(UniversitiesService);
 
   loadCustomers$ = createEffect(() =>
     this.actions$.pipe(
@@ -24,6 +35,25 @@ export class CustomerEffects {
             of(
               CustomerActions.loadCustomersFailure({
                 error: error instanceof Error ? error.message : 'Failed to load customers',
+              }),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  reseedDatabase$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(CustomerActions.reseedDatabase),
+      switchMap(() =>
+        this.database.reseed().pipe(
+          switchMap(() => this.database.getCustomers()),
+          map((customers) => CustomerActions.reseedDatabaseSuccess({ customers })),
+          catchError((error: unknown) =>
+            of(
+              CustomerActions.reseedDatabaseFailure({
+                error: error instanceof Error ? error.message : 'Failed to reseed database',
               }),
             ),
           ),
@@ -66,8 +96,17 @@ export class CustomerEffects {
   updateCustomer$ = createEffect(() =>
     this.actions$.pipe(
       ofType(CustomerActions.updateCustomer),
-      switchMap(({ id, firstName, lastName }) =>
-        this.database.updateCustomerNames(id, firstName, lastName).pipe(
+      switchMap(({ id, firstName, lastName, nationalityCode, universityName, universityWebsite }) =>
+        this.database
+          .updateCustomerNames(
+            id,
+            firstName,
+            lastName,
+            nationalityCode,
+            universityName,
+            universityWebsite,
+          )
+          .pipe(
           map((customer) => CustomerActions.updateCustomerSuccess({ customer })),
           catchError((error: unknown) =>
             of(
@@ -127,6 +166,103 @@ export class CustomerEffects {
             of(
               CustomerActions.deleteAddressFailure({
                 error: error instanceof Error ? error.message : 'Failed to delete address',
+              }),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  /** Fetch the full country list once; skip if already loaded. */
+  loadCountries$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(CustomerActions.loadCountries),
+      withLatestFrom(this.store.select(selectCountries)),
+      switchMap(([, existing]) => {
+        if (existing.length > 0) {
+          return of(CustomerActions.loadCountriesSuccess({ countries: existing }));
+        }
+
+        return this.countriesService.getCountries().pipe(
+          map((countries) => CustomerActions.loadCountriesSuccess({ countries })),
+          catchError((error: unknown) =>
+            of(
+              CustomerActions.loadCountriesFailure({
+                error: error instanceof Error ? error.message : 'Failed to load countries',
+              }),
+            ),
+          ),
+        );
+      }),
+    ),
+  );
+
+  /** Call Nationalize API; joins predictions with country metadata from the countries service. */
+  predictNationality$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(CustomerActions.predictNationality),
+      switchMap(({ surname }) =>
+        this.countriesService.getCountries().pipe(
+          switchMap((countries) => {
+            const byCode = new Map<string, Country>(
+              countries.map((c) => [c.alpha2Code.toUpperCase(), c]),
+            );
+
+            return this.nationalizeService.predictNationality(surname).pipe(
+              map((raw) => {
+                const predictions: CountryPrediction[] = raw.map(
+                  ({ country_id, probability }) => {
+                    const code = country_id.toUpperCase();
+                    const match = byCode.get(code);
+                    const flags = {
+                      png: countryFlagUrl(code, match?.flags),
+                      svg: countryFlagUrl(code, match?.flags),
+                    };
+                    return {
+                      name: match?.name ?? code,
+                      flag: match?.flag ?? '',
+                      flags,
+                      alpha2Code: code,
+                      probability,
+                    };
+                  },
+                );
+                return CustomerActions.predictNationalitySuccess({ predictions });
+              }),
+              catchError((error: unknown) =>
+                of(
+                  CustomerActions.predictNationalityFailure({
+                    error:
+                      error instanceof Error ? error.message : 'Failed to predict nationality',
+                  }),
+                ),
+              ),
+            );
+          }),
+          catchError((error: unknown) =>
+            of(
+              CustomerActions.predictNationalityFailure({
+                error: error instanceof Error ? error.message : 'Failed to load countries',
+              }),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  /** Search universities in the selected country via hipolabs. */
+  searchUniversities$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(CustomerActions.searchUniversities),
+      switchMap(({ countryName, query }) =>
+        this.universitiesService.searchUniversities(countryName, query).pipe(
+          map((results) => CustomerActions.searchUniversitiesSuccess({ results })),
+          catchError((error: unknown) =>
+            of(
+              CustomerActions.searchUniversitiesFailure({
+                error: error instanceof Error ? error.message : 'Failed to search universities',
               }),
             ),
           ),

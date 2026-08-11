@@ -5,6 +5,7 @@ import { of } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 
 import { DatabaseService } from '../../../core/database/database.service';
+import { CustomerActions } from '../../customers/store/customer.actions';
 import { QuoteActions } from './quote.actions';
 
 @Injectable()
@@ -29,6 +30,13 @@ export class QuoteEffects {
           ),
         ),
       ),
+    ),
+  );
+
+  reloadQuotesAfterReseed$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(CustomerActions.reseedDatabaseSuccess),
+      map(() => QuoteActions.loadQuotes()),
     ),
   );
 

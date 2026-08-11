@@ -43,10 +43,16 @@ export class DatabaseService {
         db.run('BEGIN');
 
         try {
-          db.run('INSERT INTO customers (firstName, lastName) VALUES (?, ?)', [
-            customer.firstName,
-            customer.lastName,
-          ]);
+          db.run(
+            'INSERT INTO customers (firstName, lastName, nationalityCode, universityName, universityWebsite) VALUES (?, ?, ?, ?, ?)',
+            [
+              customer.firstName,
+              customer.lastName,
+              customer.nationalityCode,
+              customer.universityName,
+              customer.universityWebsite,
+            ],
+          );
 
           const customerId = this.getLastInsertId(db);
 
@@ -78,6 +84,9 @@ export class DatabaseService {
           {
             firstName: 'Thabo',
             lastName: 'Molefe',
+            nationalityCode: 'ZA',
+            universityName: 'University of Cape Town',
+            universityWebsite: 'http://www.uct.ac.za/',
             addresses: [
               {
                 street: '12 Long Street',
@@ -90,6 +99,9 @@ export class DatabaseService {
           {
             firstName: 'Sarah',
             lastName: 'van Wyk',
+            nationalityCode: 'ZA',
+            universityName: 'University of Witwatersrand',
+            universityWebsite: 'http://www.wits.ac.za/',
             addresses: [
               {
                 street: '45 Rivonia Road',
@@ -108,6 +120,9 @@ export class DatabaseService {
           {
             firstName: 'James',
             lastName: 'Naidoo',
+            nationalityCode: 'ZA',
+            universityName: 'University of Pretoria',
+            universityWebsite: 'http://www.up.ac.za/',
             addresses: [
               {
                 street: '3 Church Street',
@@ -139,7 +154,7 @@ export class DatabaseService {
     return this.initialize().pipe(
       map((db) => {
         const result = db.exec(
-          'SELECT id, firstName, lastName FROM customers ORDER BY id ASC',
+          'SELECT id, firstName, lastName, nationalityCode, universityName, universityWebsite FROM customers ORDER BY id ASC',
         );
 
         if (!result.length || !result[0].values.length) {
@@ -152,6 +167,9 @@ export class DatabaseService {
             id,
             firstName: row[1] as string,
             lastName: row[2] as string,
+            nationalityCode: (row[3] as string | null) ?? null,
+            universityName: (row[4] as string | null) ?? null,
+            universityWebsite: (row[5] as string | null) ?? null,
             addresses: this.getAddressesForCustomerSync(db, id),
           };
         });
@@ -183,8 +201,15 @@ export class DatabaseService {
 
         try {
           db.run(
-            'UPDATE customers SET firstName = ?, lastName = ? WHERE id = ?',
-            [customer.firstName, customer.lastName, id],
+            'UPDATE customers SET firstName = ?, lastName = ?, nationalityCode = ?, universityName = ?, universityWebsite = ? WHERE id = ?',
+            [
+              customer.firstName,
+              customer.lastName,
+              customer.nationalityCode,
+              customer.universityName,
+              customer.universityWebsite,
+              id,
+            ],
           );
           db.run('DELETE FROM addresses WHERE customerId = ?', [id]);
 
@@ -217,6 +242,9 @@ export class DatabaseService {
     id: number,
     firstName: string,
     lastName: string,
+    nationalityCode: string | null,
+    universityName: string | null,
+    universityWebsite: string | null,
   ): Observable<CustomerEntity> {
     return this.initialize().pipe(
       map((db) => {
@@ -225,11 +253,10 @@ export class DatabaseService {
           throw new Error(`Customer with id ${id} not found`);
         }
 
-        db.run('UPDATE customers SET firstName = ?, lastName = ? WHERE id = ?', [
-          firstName,
-          lastName,
-          id,
-        ]);
+        db.run(
+          'UPDATE customers SET firstName = ?, lastName = ?, nationalityCode = ?, universityName = ?, universityWebsite = ? WHERE id = ?',
+          [firstName, lastName, nationalityCode, universityName, universityWebsite, id],
+        );
         this.persist(db);
         return this.getCustomerByIdSync(db, id);
       }),
@@ -336,6 +363,29 @@ export class DatabaseService {
     );
   }
 
+  /** Downloads the current SQLite database as a `.db` file. */
+  exportDatabase(): Observable<void> {
+    return this.initialize().pipe(
+      map((db) => {
+        this.downloadDatabaseFile(db.export(), 'customer-quote-app.db');
+      }),
+    );
+  }
+
+  /** Wipes persisted data and re-runs seed customers and quotes. */
+  reseed(): Observable<void> {
+    localStorage.removeItem(DB_STORAGE_KEY);
+
+    if (this.db) {
+      this.db.close();
+    }
+
+    this.db = null;
+    this.init$ = null;
+
+    return this.ensureSeedData();
+  }
+
   private async openDatabase(): Promise<Database> {
     this.sqlJs = await initSqlJs({
       locateFile: () => '/assets/sql-wasm.wasm',
@@ -347,8 +397,30 @@ export class DatabaseService {
       : new this.sqlJs.Database();
 
     db.run(DATABASE_SCHEMA);
+    this.migrate(db);
     this.persist(db);
     return db;
+  }
+
+  private migrate(db: Database): void {
+    if (!this.hasColumn(db, 'customers', 'nationalityCode')) {
+      db.run('ALTER TABLE customers ADD COLUMN nationalityCode TEXT');
+    }
+    if (!this.hasColumn(db, 'customers', 'universityName')) {
+      db.run('ALTER TABLE customers ADD COLUMN universityName TEXT');
+    }
+    if (!this.hasColumn(db, 'customers', 'universityWebsite')) {
+      db.run('ALTER TABLE customers ADD COLUMN universityWebsite TEXT');
+    }
+  }
+
+  private hasColumn(db: Database, table: string, column: string): boolean {
+    const result = db.exec(`PRAGMA table_info(${table})`);
+    if (!result.length) {
+      return false;
+    }
+
+    return result[0].values.some((row) => row[1] === column);
   }
 
   private insertAddress(db: Database, customerId: number, address: Address): void {
@@ -375,6 +447,9 @@ export class DatabaseService {
       id: row.id,
       firstName: row.firstName,
       lastName: row.lastName,
+      nationalityCode: row.nationalityCode,
+      universityName: row.universityName,
+      universityWebsite: row.universityWebsite,
       addresses: this.getAddressesForCustomerSync(db, id),
     };
   }
@@ -382,9 +457,16 @@ export class DatabaseService {
   private findCustomerRow(
     db: Database,
     id: number,
-  ): { id: number; firstName: string; lastName: string } | null {
+  ): {
+    id: number;
+    firstName: string;
+    lastName: string;
+    nationalityCode: string | null;
+    universityName: string | null;
+    universityWebsite: string | null;
+  } | null {
     const statement = db.prepare(
-      'SELECT id, firstName, lastName FROM customers WHERE id = ?',
+      'SELECT id, firstName, lastName, nationalityCode, universityName, universityWebsite FROM customers WHERE id = ?',
     );
     statement.bind([id]);
 
@@ -397,9 +479,19 @@ export class DatabaseService {
       id: number;
       firstName: string;
       lastName: string;
+      nationalityCode: string | null;
+      universityName: string | null;
+      universityWebsite: string | null;
     };
     statement.free();
-    return row;
+    return {
+      id: row.id,
+      firstName: row.firstName,
+      lastName: row.lastName,
+      nationalityCode: row.nationalityCode ?? null,
+      universityName: row.universityName ?? null,
+      universityWebsite: row.universityWebsite ?? null,
+    };
   }
 
   private getAddressesForCustomerSync(db: Database, customerId: number): AddressEntity[] {
@@ -617,6 +709,16 @@ export class DatabaseService {
   private persist(db: Database): void {
     const data = db.export();
     localStorage.setItem(DB_STORAGE_KEY, this.encodeBase64(data));
+  }
+
+  private downloadDatabaseFile(data: Uint8Array, filename: string): void {
+    const blob = new Blob([data], { type: 'application/x-sqlite3' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
   }
 
   private encodeBase64(data: Uint8Array): string {

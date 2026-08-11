@@ -3,6 +3,9 @@ import { Address, AddressEntity } from './address.model';
 export interface Customer {
   firstName: string;
   lastName: string;
+  nationalityCode: string | null;
+  universityName: string | null;
+  universityWebsite: string | null;
   addresses: Address[];
 }
 
@@ -11,5 +14,8 @@ export interface CustomerEntity {
   id: number;
   firstName: string;
   lastName: string;
+  nationalityCode: string | null;
+  universityName: string | null;
+  universityWebsite: string | null;
   addresses: AddressEntity[];
 }

@@ -15,11 +15,20 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
+import { combineLatest, Observable, take } from 'rxjs';
+import { map, startWith } from 'rxjs/operators';
 
 import { Customer } from '../../../models/customer.model';
 import { HasFormErrorPipe } from '../../../shared/pipes/has-form-error.pipe';
+import { CustomerNationalityPanelComponent } from '../nationality/customer-nationality-panel.component';
+import { CustomerUniversityPanelComponent } from '../university/customer-university-panel.component';
 import { CustomerActions } from '../store/customer.actions';
-import { selectError, selectSaving } from '../store/customer.selectors';
+import {
+  selectDraftNationalityCode,
+  selectDraftUniversity,
+  selectError,
+  selectSaving,
+} from '../store/customer.selectors';
 
 interface AddressForm {
   street: FormControl<string>;
@@ -38,6 +47,8 @@ interface CustomerForm {
   selector: 'app-customer-create',
   imports: [
     AsyncPipe,
+    CustomerNationalityPanelComponent,
+    CustomerUniversityPanelComponent,
     HasFormErrorPipe,
     MatButtonModule,
     MatFormFieldModule,
@@ -55,6 +66,8 @@ export class CustomerCreateComponent {
 
   readonly saving$ = this.store.select(selectSaving);
   readonly error$ = this.store.select(selectError);
+  readonly draftNationalityCode$ = this.store.select(selectDraftNationalityCode);
+  readonly draftUniversity$ = this.store.select(selectDraftUniversity);
 
   submitted = false;
 
@@ -63,6 +76,15 @@ export class CustomerCreateComponent {
     lastName: ['', [Validators.required, Validators.maxLength(100)]],
     addresses: this.formBuilder.nonNullable.array([this.createAddressGroup()]),
   });
+
+  readonly lastName$: Observable<string> = this.form.controls.lastName.valueChanges.pipe(
+    startWith(this.form.controls.lastName.value),
+  );
+
+  constructor() {
+    this.store.dispatch(CustomerActions.setDraftNationality({ nationalityCode: null }));
+    this.store.dispatch(CustomerActions.setDraftUniversity({ university: null }));
+  }
 
   get addresses(): FormArray<FormGroup<AddressForm>> {
     return this.form.controls.addresses;
@@ -84,12 +106,30 @@ export class CustomerCreateComponent {
     this.submitted = true;
     this.form.markAllAsTouched();
 
-    if (this.form.invalid) {
-      return;
-    }
+    combineLatest([this.draftNationalityCode$, this.draftUniversity$])
+      .pipe(
+        take(1),
+        map(([nationalityCode, draftUniversity]) => ({
+          nationalityCode,
+          draftUniversity,
+        })),
+      )
+      .subscribe(({ nationalityCode, draftUniversity }) => {
+        const trimmedNationality = nationalityCode?.trim() ?? '';
+        const universityName = draftUniversity?.name?.trim() ?? '';
 
-    const customer: Customer = this.form.getRawValue();
-    this.store.dispatch(CustomerActions.createCustomer({ customer }));
+        if (this.form.invalid || !trimmedNationality || !universityName) {
+          return;
+        }
+
+        const customer: Customer = {
+          ...this.form.getRawValue(),
+          nationalityCode: trimmedNationality,
+          universityName,
+          universityWebsite: draftUniversity?.website?.trim() || null,
+        };
+        this.store.dispatch(CustomerActions.createCustomer({ customer }));
+      });
   }
 
   private createAddressGroup(): FormGroup<AddressForm> {

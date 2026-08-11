@@ -1,0 +1,121 @@
+@if (countryName(); as country) {
+  <section
+    class="rounded-xl border border-indigo-200/70 bg-gradient-to-br from-indigo-50/80 to-violet-50/40 p-4 shadow-sm shadow-indigo-900/5"
+    aria-label="University search"
+  >
+    <div class="mb-3 flex items-center gap-2">
+      <mat-icon class="!text-indigo-700" aria-hidden="true">school</mat-icon>
+      <div>
+        <h2 class="m-0 text-sm font-medium uppercase tracking-[0.18em] text-indigo-800/80">
+          University <span class="text-red-600" aria-hidden="true">*</span>
+        </h2>
+        <p class="m-0 mt-0.5 text-sm text-slate-600">
+          Search for a university in {{ country }}
+        </p>
+      </div>
+    </div>
+
+    @if (showRequiredError() && !draftUniversity()) {
+      <p class="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+        University is required
+      </p>
+    }
+
+    @if (draftUniversity(); as selected) {
+      <div
+        class="mb-4 flex items-center justify-between gap-3 rounded-lg border border-indigo-300/70 bg-white/80 px-3 py-2"
+        role="status"
+      >
+        <div class="min-w-0">
+          <p class="m-0 text-xs font-medium uppercase tracking-wide text-indigo-800/70">
+            Selected university
+          </p>
+          <p class="m-0 truncate text-sm font-medium text-slate-900">{{ selected.name }}</p>
+          @if (selected.website) {
+            <a
+              class="m-0 block truncate text-sm text-indigo-700 hover:underline"
+              [href]="selected.website"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {{ selected.website }}
+            </a>
+          }
+        </div>
+        <button mat-button type="button" class="!shrink-0" (click)="clearSelection()">
+          Clear
+        </button>
+      </div>
+    }
+
+    <div class="relative">
+      <mat-form-field appearance="outline" class="w-full" subscriptSizing="fixed">
+        <mat-label>Type to search universities</mat-label>
+        <input
+          #universitySearchInput
+          matInput
+          type="text"
+          id="university-search-filter"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          data-lpignore="true"
+          data-form-type="other"
+          aria-label="Search universities by name"
+          aria-autocomplete="list"
+          [attr.aria-expanded]="dropdownOpen()"
+          [readonly]="searchReadonly()"
+          (input)="onUniversitySearchInput($event)"
+          (focus)="onUniversitySearchFocus($event)"
+          (blur)="onUniversitySearchBlur()"
+        />
+      </mat-form-field>
+
+      @if (searchLoading()) {
+        <div class="flex items-center gap-2 px-1 py-2 text-sm text-slate-600" aria-live="polite">
+          <mat-spinner diameter="20"></mat-spinner>
+          <span>Searching universities…</span>
+        </div>
+      } @else if (searchError()) {
+        <p class="m-0 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900" role="alert">
+          {{ searchError() }}
+        </p>
+      } @else if (dropdownOpen() && universityQuery().trim().length >= 2 && searchResults().length > 0) {
+        <ul
+          class="absolute z-20 m-0 max-h-60 w-full list-none overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg shadow-slate-900/10"
+          role="listbox"
+          aria-label="University search results"
+        >
+          @for (university of searchResults(); track university.name) {
+            <li
+              role="option"
+              class="cursor-pointer px-3 py-2 hover:bg-indigo-50"
+              (mousedown)="selectUniversity(university)"
+            >
+              <p class="m-0 truncate text-sm font-medium text-slate-900">{{ university.name }}</p>
+              @if (university.website) {
+                <p class="m-0 truncate text-xs text-slate-500">{{ university.website }}</p>
+              }
+            </li>
+          }
+        </ul>
+      } @else if (
+        dropdownOpen() && universityQuery().trim().length >= 2 && searchResults().length === 0
+      ) {
+        <p
+          class="absolute z-20 m-0 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-lg"
+          role="status"
+        >
+          No universities match your search.
+        </p>
+      } @else if (dropdownOpen() && universityQuery().trim().length > 0 && universityQuery().trim().length < 2) {
+        <p
+          class="absolute z-20 m-0 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-lg"
+          role="status"
+        >
+          Type at least 2 characters to search.
+        </p>
+      }
+    </div>
+  </section>
+}

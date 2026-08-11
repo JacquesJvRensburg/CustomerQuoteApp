@@ -9,6 +9,8 @@ import { CustomerLandingComponent } from './customer-landing.component';
 import { CustomerActions } from '../store/customer.actions';
 import {
   selectCustomerTableRows,
+  selectDraftNationalityCode,
+  selectDraftUniversity,
   selectEditingCustomerId,
   selectError,
   selectFilter,
@@ -25,6 +27,11 @@ describe('CustomerLandingComponent', () => {
       id: 1,
       firstName: 'Thabo',
       lastName: 'Molefe',
+      nationalityCode: 'ZA',
+      nationalityName: 'South Africa',
+      nationalityFlagUrl: 'https://flagcdn.com/za.svg',
+      universityName: null,
+      universityWebsite: null,
       addressSearchText: '12 Long Street Cape Town',
     },
   ];
@@ -42,6 +49,8 @@ describe('CustomerLandingComponent', () => {
             { selector: selectError, value: null },
             { selector: selectFilter, value: '' },
             { selector: selectEditingCustomerId, value: null },
+            { selector: selectDraftNationalityCode, value: null },
+            { selector: selectDraftUniversity, value: null },
           ],
         }),
       ],
@@ -57,6 +66,7 @@ describe('CustomerLandingComponent', () => {
 
     expect(fixture.componentInstance).toBeTruthy();
     expect(store.dispatch).toHaveBeenCalledWith(CustomerActions.loadCustomers());
+    expect(store.dispatch).toHaveBeenCalledWith(CustomerActions.loadCountries());
     expect(fixture.componentInstance.dataSource.data).toEqual(rows);
   });
 
@@ -112,7 +122,29 @@ describe('CustomerLandingComponent', () => {
     expect(store.dispatch).not.toHaveBeenCalled();
   });
 
+  it('should not save when nationality or university is missing', () => {
+    const fixture = TestBed.createComponent(CustomerLandingComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.startEdit(rows[0]);
+    (store.dispatch as jasmine.Spy).calls.reset();
+    component.editFirstName = 'Sara';
+    component.editLastName = 'Molefe';
+    component.saveEdit(rows[0]);
+
+    expect(component.editAttempted).toBeTrue();
+    expect(store.dispatch).not.toHaveBeenCalled();
+  });
+
   it('should dispatch updateCustomer when save is valid', () => {
+    store.overrideSelector(selectDraftNationalityCode, 'ZA');
+    store.overrideSelector(selectDraftUniversity, {
+      name: 'University of Cape Town',
+      website: 'https://www.uct.ac.za',
+    });
+    store.refreshState();
+
     const fixture = TestBed.createComponent(CustomerLandingComponent);
     const component = fixture.componentInstance;
     fixture.detectChanges();
@@ -128,6 +160,9 @@ describe('CustomerLandingComponent', () => {
         id: 1,
         firstName: 'Sara',
         lastName: 'Molefe',
+        nationalityCode: 'ZA',
+        universityName: 'University of Cape Town',
+        universityWebsite: 'https://www.uct.ac.za',
       }),
     );
   });

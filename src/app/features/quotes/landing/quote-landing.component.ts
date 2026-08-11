@@ -22,9 +22,10 @@ import {
   ConfirmDialogComponent,
   ConfirmDialogData,
 } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { DatabaseExportButtonComponent } from '../../../shared/database-export-button/database-export-button.component';
 import { FeatureSwitcherComponent } from '../../../shared/feature-switcher/feature-switcher.component';
 import { EditFieldInvalidPipe } from '../../../shared/pipes/edit-field-invalid.pipe';
-import { TruncateLongWordsPipe } from '../../../shared/pipes/truncate-long-words.pipe';
+import { TruncatePipe } from '../../../shared/pipes/truncate.pipe';
 import { QuoteActions } from '../store/quote.actions';
 import {
   selectCustomerIdFilter,
@@ -51,6 +52,7 @@ interface QuoteTableRow {
     AsyncPipe,
     CurrencyPipe,
     DatePipe,
+    DatabaseExportButtonComponent,
     EditFieldInvalidPipe,
     FeatureSwitcherComponent,
     FormsModule,
@@ -66,7 +68,7 @@ interface QuoteTableRow {
     MatTooltipModule,
     NgClass,
     RouterLink,
-    TruncateLongWordsPipe,
+    TruncatePipe,
   ],
   templateUrl: './quote-landing.component.html',
 })

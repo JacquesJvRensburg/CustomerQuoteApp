@@ -26,6 +26,9 @@ describe('CustomerAddressesComponent', () => {
     id: 1,
     firstName: 'Thabo',
     lastName: 'Molefe',
+    nationalityCode: null,
+    universityName: null,
+    universityWebsite: null,
     addresses: [address],
   };
 

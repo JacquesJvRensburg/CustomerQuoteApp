@@ -38,11 +38,12 @@
     </div>
 
     <div class="px-5 py-6 sm:px-6">
-      <form class="flex flex-col gap-8" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-        <section class="grid items-start gap-4 sm:grid-cols-2">
-          <mat-form-field appearance="outline" class="w-full" subscriptSizing="fixed">
-            <mat-label>First name</mat-label>
-            <input matInput formControlName="firstName" autocomplete="given-name" required />
+      <div class="flex flex-col gap-8">
+        <div [formGroup]="form">
+          <section class="grid items-start gap-4 sm:grid-cols-2">
+            <mat-form-field appearance="outline" class="w-full" subscriptSizing="fixed">
+              <mat-label>First name</mat-label>
+              <input matInput formControlName="firstName" autocomplete="given-name" required />
             @if (
               form.controls.firstName.errors
                 | hasFormError: 'required' : form.controls.firstName.touched : submitted
@@ -72,7 +73,15 @@
             }
           </mat-form-field>
         </section>
+        </div>
 
+        <app-customer-nationality-panel
+          [surname]="(lastName$ | async) ?? ''"
+          [showRequiredError]="submitted"
+        />
+        <app-customer-university-panel [showRequiredError]="submitted" />
+
+        <form class="flex flex-col gap-8" [formGroup]="form" (ngSubmit)="submit()" novalidate autocomplete="off">
         <section class="flex flex-col gap-4" formArrayName="addresses">
           <h2 class="m-0 text-sm font-medium uppercase tracking-[0.18em] text-slate-500">
             Addresses
@@ -173,7 +182,7 @@
           </div>
         </section>
 
-        @if (submitted && form.invalid) {
+        @if (submitted && (form.invalid || !(draftNationalityCode$ | async) || !(draftUniversity$ | async))) {
           <p class="m-0 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
             Please complete all required fields before saving.
           </p>
@@ -201,7 +210,8 @@
             }
           </button>
         </div>
-      </form>
+        </form>
+      </div>
     </div>
   </section>
 </main>
