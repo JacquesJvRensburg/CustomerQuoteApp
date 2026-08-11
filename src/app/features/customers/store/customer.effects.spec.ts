@@ -16,7 +16,7 @@ import { University } from '../../../models/university.model';
 import { CustomerActions } from './customer.actions';
 import { CustomerEffects } from './customer.effects';
 import { initialCustomersState } from './customer.reducer';
-import { selectCountries } from './customer.selectors';
+import { selectCountries, selectCustomersDataRevision } from './customer.selectors';
 
 describe('CustomerEffects', () => {
   let actions$: Observable<Action>;
@@ -49,7 +49,7 @@ describe('CustomerEffects', () => {
   const country: Country = {
     name: 'South Africa',
     flag: '🇿🇦',
-    flags: { png: 'https://example.com/za.png', svg: 'https://example.com/za.svg' },
+    flags: { png: 'https://flagcdn.com/za.png', svg: 'https://flagcdn.com/za.svg' },
     alpha2Code: 'ZA',
   };
 
@@ -95,6 +95,7 @@ describe('CustomerEffects', () => {
     effects = TestBed.inject(CustomerEffects);
     store = TestBed.inject(MockStore);
     store.overrideSelector(selectCountries, []);
+    store.overrideSelector(selectCustomersDataRevision, 0);
   });
 
   afterEach(() => {
@@ -107,7 +108,7 @@ describe('CustomerEffects', () => {
     actions$ = of(CustomerActions.loadCustomers());
 
     await expectAsync(firstValueFrom(effects.loadCustomers$)).toBeResolvedTo(
-      CustomerActions.loadCustomersSuccess({ customers: [customer] }),
+      CustomerActions.loadCustomersSuccess({ customers: [customer], revision: 0 }),
     );
   });
 
@@ -229,8 +230,8 @@ describe('CustomerEffects', () => {
             name: 'South Africa',
             flag: '🇿🇦',
             flags: {
-              png: 'https://example.com/za.svg',
-              svg: 'https://example.com/za.svg',
+              png: 'https://flagcdn.com/za.svg',
+              svg: 'https://flagcdn.com/za.svg',
             },
             alpha2Code: 'ZA',
             probability: 0.8,

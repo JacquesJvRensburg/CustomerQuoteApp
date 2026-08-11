@@ -10,8 +10,9 @@ import { NationalizeService } from '../../../core/nationalize/nationalize.servic
 import { UniversitiesService } from '../../../core/universities/universities.service';
 import { Country, CountryPrediction } from '../../../models/country.model';
 import { countryFlagUrl } from '../../../shared/utils/country-flag.util';
+import { sanitizeHttpUrl } from '../../../shared/utils/safe-url.util';
 import { CustomerActions } from './customer.actions';
-import { selectCountries } from './customer.selectors';
+import { selectCountries, selectCustomersDataRevision } from './customer.selectors';
 
 @Injectable()
 export class CustomerEffects {
@@ -26,10 +27,11 @@ export class CustomerEffects {
   loadCustomers$ = createEffect(() =>
     this.actions$.pipe(
       ofType(CustomerActions.loadCustomers),
-      switchMap(() =>
+      withLatestFrom(this.store.select(selectCustomersDataRevision)),
+      switchMap(([, revision]) =>
         this.database.ensureSeedData().pipe(
           switchMap(() => this.database.getCustomers()),
-          map((customers) => CustomerActions.loadCustomersSuccess({ customers })),
+          map((customers) => CustomerActions.loadCustomersSuccess({ customers, revision })),
           catchError((error: unknown) =>
             of(
               CustomerActions.loadCustomersFailure({
@@ -46,18 +48,23 @@ export class CustomerEffects {
     this.actions$.pipe(
       ofType(CustomerActions.createCustomer),
       concatMap(({ customer }) =>
-        this.database.saveCustomer(customer).pipe(
-          map((savedCustomer) =>
-            CustomerActions.createCustomerSuccess({ customer: savedCustomer }),
-          ),
-          catchError((error: unknown) =>
-            of(
-              CustomerActions.createCustomerFailure({
-                error: error instanceof Error ? error.message : 'Failed to create customer',
-              }),
+        this.database
+          .saveCustomer({
+            ...customer,
+            universityWebsite: sanitizeHttpUrl(customer.universityWebsite) || null,
+          })
+          .pipe(
+            map((savedCustomer) =>
+              CustomerActions.createCustomerSuccess({ customer: savedCustomer }),
+            ),
+            catchError((error: unknown) =>
+              of(
+                CustomerActions.createCustomerFailure({
+                  error: error instanceof Error ? error.message : 'Failed to create customer',
+                }),
+              ),
             ),
           ),
-        ),
       ),
     ),
   );
@@ -84,7 +91,7 @@ export class CustomerEffects {
             lastName,
             nationalityCode,
             universityName,
-            universityWebsite,
+            sanitizeHttpUrl(universityWebsite) || null,
           )
           .pipe(
             map((customer) => CustomerActions.updateCustomerSuccess({ customer })),

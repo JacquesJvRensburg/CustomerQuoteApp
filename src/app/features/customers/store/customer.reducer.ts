@@ -7,6 +7,10 @@ import { CustomerActions } from './customer.actions';
 
 export interface CustomersState {
   customers: CustomerEntity[];
+  /** Bumped on successful mutations so in-flight loads can discard stale snapshots. */
+  dataRevision: number;
+  /** In-flight create/update/delete operations; drives `saving`. */
+  pendingMutations: number;
   loading: boolean;
   saving: boolean;
   loadError: string | null;
@@ -29,6 +33,8 @@ export interface CustomersState {
 
 export const initialCustomersState: CustomersState = {
   customers: [],
+  dataRevision: 0,
+  pendingMutations: 0,
   loading: false,
   saving: false,
   loadError: null,
@@ -49,6 +55,29 @@ export const initialCustomersState: CustomersState = {
   universitySearchError: null,
 };
 
+function beginMutation(state: CustomersState): CustomersState {
+  const pendingMutations = state.pendingMutations + 1;
+  return {
+    ...state,
+    pendingMutations,
+    saving: true,
+    mutationError: null,
+  };
+}
+
+function endMutation(
+  state: CustomersState,
+  patch: Partial<CustomersState> = {},
+): CustomersState {
+  const pendingMutations = Math.max(0, state.pendingMutations - 1);
+  return {
+    ...state,
+    ...patch,
+    pendingMutations,
+    saving: pendingMutations > 0,
+  };
+}
+
 const customersReducer = createReducer(
   initialCustomersState,
   on(CustomerActions.loadCustomers, (state) => ({
@@ -56,93 +85,92 @@ const customersReducer = createReducer(
     loading: state.customers.length === 0,
     loadError: null,
   })),
-  on(CustomerActions.loadCustomersSuccess, (state, { customers }) => ({
-    ...state,
-    customers,
-    loading: false,
-    loadError: null,
-  })),
+  on(CustomerActions.loadCustomersSuccess, (state, { customers, revision }) => {
+    if (revision !== state.dataRevision) {
+      return {
+        ...state,
+        loading: false,
+        loadError: null,
+      };
+    }
+
+    return {
+      ...state,
+      customers,
+      loading: false,
+      loadError: null,
+    };
+  }),
   on(CustomerActions.loadCustomersFailure, (state, { error }) => ({
     ...state,
     loading: false,
     loadError: error,
   })),
-  on(CustomerActions.createCustomer, (state) => ({
-    ...state,
-    saving: true,
-    mutationError: null,
-  })),
-  on(CustomerActions.createCustomerSuccess, (state, { customer }) => ({
-    ...state,
-    customers: [customer, ...state.customers],
-    saving: false,
-    mutationError: null,
-    draftNationalityCode: null,
-    draftUniversity: null,
-    universitySearchResults: [],
-    universitySearchLoading: false,
-    universitySearchError: null,
-  })),
-  on(CustomerActions.createCustomerFailure, (state, { error }) => ({
-    ...state,
-    saving: false,
-    mutationError: error,
-  })),
+  on(CustomerActions.createCustomer, beginMutation),
+  on(CustomerActions.createCustomerSuccess, (state, { customer }) =>
+    endMutation(state, {
+      customers: [customer, ...state.customers],
+      dataRevision: state.dataRevision + 1,
+      mutationError: null,
+      draftNationalityCode: null,
+      draftUniversity: null,
+      universitySearchResults: [],
+      universitySearchLoading: false,
+      universitySearchError: null,
+    }),
+  ),
+  on(CustomerActions.createCustomerFailure, (state, { error }) =>
+    endMutation(state, { mutationError: error }),
+  ),
   on(
     CustomerActions.updateCustomer,
     CustomerActions.deleteCustomer,
     CustomerActions.updateAddress,
     CustomerActions.deleteAddress,
-    (state) => ({
-      ...state,
-      saving: true,
-      mutationError: null,
-    }),
+    beginMutation,
   ),
-  on(CustomerActions.updateCustomerSuccess, (state, { customer }) => ({
-    ...state,
-    customers: state.customers.map((existing) =>
-      existing.id === customer.id ? customer : existing,
-    ),
-    saving: false,
-    mutationError: null,
-    editingCustomerId: null,
-    draftNationalityCode: null,
-    draftUniversity: null,
-    universitySearchResults: [],
-    universitySearchLoading: false,
-    universitySearchError: null,
-  })),
-  on(
-    CustomerActions.updateAddressSuccess,
-    CustomerActions.deleteAddressSuccess,
-    (state, { customer }) => ({
-      ...state,
+  on(CustomerActions.updateCustomerSuccess, (state, { customer }) =>
+    endMutation(state, {
       customers: state.customers.map((existing) =>
         existing.id === customer.id ? customer : existing,
       ),
-      saving: false,
+      dataRevision: state.dataRevision + 1,
       mutationError: null,
-      editingAddressId: null,
+      editingCustomerId: null,
+      draftNationalityCode: null,
+      draftUniversity: null,
+      universitySearchResults: [],
+      universitySearchLoading: false,
+      universitySearchError: null,
     }),
   ),
-  on(CustomerActions.deleteCustomerSuccess, (state, { id }) => ({
-    ...state,
-    customers: state.customers.filter((customer) => customer.id !== id),
-    saving: false,
-    mutationError: null,
-    editingCustomerId: state.editingCustomerId === id ? null : state.editingCustomerId,
-  })),
+  on(
+    CustomerActions.updateAddressSuccess,
+    CustomerActions.deleteAddressSuccess,
+    (state, { customer }) =>
+      endMutation(state, {
+        customers: state.customers.map((existing) =>
+          existing.id === customer.id ? customer : existing,
+        ),
+        dataRevision: state.dataRevision + 1,
+        mutationError: null,
+        editingAddressId: null,
+      }),
+  ),
+  on(CustomerActions.deleteCustomerSuccess, (state, { id }) =>
+    endMutation(state, {
+      customers: state.customers.filter((customer) => customer.id !== id),
+      dataRevision: state.dataRevision + 1,
+      mutationError: null,
+      editingCustomerId: state.editingCustomerId === id ? null : state.editingCustomerId,
+    }),
+  ),
   on(
     CustomerActions.updateCustomerFailure,
     CustomerActions.deleteCustomerFailure,
     CustomerActions.updateAddressFailure,
     CustomerActions.deleteAddressFailure,
-    (state, { error }) => ({
-      ...state,
-      saving: false,
-      mutationError: error,
-    }),
+    (state, { error }) => endMutation(state, { mutationError: error }),
   ),
   on(CustomerActions.clearMutationError, (state) => ({
     ...state,

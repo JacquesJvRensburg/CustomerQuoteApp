@@ -29,7 +29,7 @@ describe('customer selectors', () => {
   const country: Country = {
     name: 'South Africa',
     flag: '🇿🇦',
-    flags: { png: 'https://example.com/za.png', svg: 'https://example.com/za.svg' },
+    flags: { png: 'https://flagcdn.com/za.png', svg: 'https://flagcdn.com/za.svg' },
     alpha2Code: 'ZA',
   };
 
@@ -43,7 +43,7 @@ describe('customer selectors', () => {
         lastName: 'Molefe',
         nationalityCode: 'ZA',
         nationalityName: 'South Africa',
-        nationalityFlagUrl: 'https://example.com/za.svg',
+        nationalityFlagUrl: 'https://flagcdn.com/za.svg',
         universityName: 'University of Cape Town',
         universityWebsite: 'http://www.uct.ac.za/',
         addressSearchText: '12 Long Street City Centre Cape Town 8001',

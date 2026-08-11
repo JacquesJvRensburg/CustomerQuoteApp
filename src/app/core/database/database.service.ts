@@ -5,6 +5,7 @@ import initSqlJs, { Database, SqlJsStatic } from 'sql.js';
 import { Address, AddressEntity } from '../../models/address.model';
 import { Customer, CustomerEntity } from '../../models/customer.model';
 import { Quote, QuoteEntity, QuoteStatus, QUOTE_DESCRIPTION_MAX_LENGTH, QUOTE_STATUSES } from '../../models/quote.model';
+import { sanitizeHttpUrl } from '../../shared/utils/safe-url.util';
 import { DATABASE_SCHEMA } from './database.schema';
 
 const DB_STORAGE_KEY = 'customer-quote-app-sqlite';
@@ -58,7 +59,7 @@ export class DatabaseService {
               customer.lastName,
               customer.nationalityCode,
               customer.universityName,
-              customer.universityWebsite,
+              this.sanitizeStoredWebsite(customer.universityWebsite),
             ],
           );
 
@@ -187,7 +188,7 @@ export class DatabaseService {
             lastName: row[2] as string,
             nationalityCode: (row[3] as string | null) ?? null,
             universityName: (row[4] as string | null) ?? null,
-            universityWebsite: (row[5] as string | null) ?? null,
+            universityWebsite: this.sanitizeStoredWebsite(row[5] as string | null),
             addresses: this.getAddressesForCustomerSync(db, id),
           };
         });
@@ -225,7 +226,7 @@ export class DatabaseService {
               customer.lastName,
               customer.nationalityCode,
               customer.universityName,
-              customer.universityWebsite,
+              this.sanitizeStoredWebsite(customer.universityWebsite),
               id,
             ],
           );
@@ -275,7 +276,14 @@ export class DatabaseService {
 
         db.run(
           'UPDATE customers SET firstName = ?, lastName = ?, nationalityCode = ?, universityName = ?, universityWebsite = ? WHERE id = ?',
-          [firstName, lastName, nationalityCode, universityName, universityWebsite, id],
+          [
+            firstName,
+            lastName,
+            nationalityCode,
+            universityName,
+            this.sanitizeStoredWebsite(universityWebsite),
+            id,
+          ],
         );
         this.persist(db);
         return this.getCustomerByIdSync(db, id);
@@ -477,7 +485,7 @@ export class DatabaseService {
       lastName: row.lastName,
       nationalityCode: row.nationalityCode,
       universityName: row.universityName,
-      universityWebsite: row.universityWebsite,
+      universityWebsite: this.sanitizeStoredWebsite(row.universityWebsite),
       addresses: this.getAddressesForCustomerSync(db, id),
     };
   }
@@ -811,6 +819,16 @@ export class DatabaseService {
     return result[0].values[0][0] as number;
   }
 
+  /** Persist only http(s) university websites; drop unsafe schemes. */
+  private sanitizeStoredWebsite(website: string | null | undefined): string | null {
+    return sanitizeHttpUrl(website) || null;
+  }
+
+  /**
+   * Demo-only persistence: the full SQLite DB (including PII) is stored in
+   * localStorage as Base64. This is not encrypted and is readable by any
+   * script on this origin — do not use for sensitive production data.
+   */
   private persist(db: Database): void {
     try {
       const data = db.export();

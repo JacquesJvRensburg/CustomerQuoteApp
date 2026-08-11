@@ -6,6 +6,8 @@ import { customersFeature } from './customer.reducer';
 export const {
   selectCustomersState,
   selectCustomers,
+  selectDataRevision: selectCustomersDataRevision,
+  selectPendingMutations: selectCustomersPendingMutations,
   selectLoading: selectCustomersLoading,
   selectSaving: selectCustomersSaving,
   selectLoadError: selectCustomersLoadError,

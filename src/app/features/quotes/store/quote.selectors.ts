@@ -5,6 +5,8 @@ import { quotesFeature } from './quote.reducer';
 export const {
   selectQuotesState,
   selectQuotes,
+  selectDataRevision: selectQuotesDataRevision,
+  selectPendingMutations: selectQuotesPendingMutations,
   selectLoading: selectQuotesLoading,
   selectSaving: selectQuotesSaving,
   selectLoadError: selectQuotesLoadError,

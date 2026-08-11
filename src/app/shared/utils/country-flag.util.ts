@@ -1,16 +1,19 @@
 import { CountryFlags } from '../../models/country.model';
+import { sanitizeFlagImageUrl } from './safe-url.util';
 
-/** Prefer API flag images; fall back to flagcdn for a given ISO alpha-2 code. */
+/** Prefer allowlisted API flag images; fall back to flagcdn for a given ISO alpha-2 code. */
 export function countryFlagUrl(
   countryCode: string | null | undefined,
   flags?: CountryFlags | null,
 ): string {
-  if (flags?.svg) {
-    return flags.svg;
+  const svg = sanitizeFlagImageUrl(flags?.svg);
+  if (svg) {
+    return svg;
   }
 
-  if (flags?.png) {
-    return flags.png;
+  const png = sanitizeFlagImageUrl(flags?.png);
+  if (png) {
+    return png;
   }
 
   const code = countryCode?.trim().toLowerCase() ?? '';
