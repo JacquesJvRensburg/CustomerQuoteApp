@@ -4,7 +4,7 @@ import { Pipe, PipeTransform } from '@angular/core';
   name: 'truncateLongWords',
 })
 export class TruncateLongWordsPipe implements PipeTransform {
-  transform(value: string | null | undefined, maxWordLength = 30): string {
+  transform(value: string | null | undefined, maxWordLength = 20): string {
     if (!value) {
       return '';
     }

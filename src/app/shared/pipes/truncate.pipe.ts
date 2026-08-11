@@ -4,16 +4,34 @@ import { Pipe, PipeTransform } from '@angular/core';
   name: 'truncate',
 })
 export class TruncatePipe implements PipeTransform {
-  transform(value: string | number | null | undefined, maxLength = 35): string {
+  transform(
+    value: string | number | null | undefined,
+    maxLength = 35,
+    maxWordLength = 20,
+  ): string {
     if (value === null || value === undefined) {
       return '';
     }
 
-    const text = String(value);
-    if (text.length <= maxLength) {
-      return text;
+    const withTruncatedWords = this.truncateLongWords(String(value), maxWordLength);
+
+    if (withTruncatedWords.length <= maxLength) {
+      return withTruncatedWords;
     }
 
-    return `${text.slice(0, maxLength)}…`;
+    return `${withTruncatedWords.slice(0, maxLength)}…`;
+  }
+
+  private truncateLongWords(value: string, maxWordLength: number): string {
+    return value
+      .split(/(\s+)/)
+      .map((part) => {
+        if (/^\s+$/.test(part) || part.length <= maxWordLength) {
+          return part;
+        }
+
+        return `${part.slice(0, maxWordLength)}…`;
+      })
+      .join('');
   }
 }

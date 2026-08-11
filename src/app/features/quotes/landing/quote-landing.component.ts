@@ -17,7 +17,7 @@ import { Store } from '@ngrx/store';
 import { combineLatest } from 'rxjs';
 import { filter } from 'rxjs/operators';
 
-import { QuoteStatus, QUOTE_STATUSES } from '../../../models/quote.model';
+import { QuoteStatus, QUOTE_DESCRIPTION_MAX_LENGTH, QUOTE_STATUSES } from '../../../models/quote.model';
 import {
   ConfirmDialogComponent,
   ConfirmDialogData,
@@ -42,6 +42,7 @@ interface QuoteTableRow {
   customerId: number;
   customerFullName: string;
   amount: number;
+  description: string;
   status: QuoteStatus;
   createdDate: string;
 }
@@ -84,6 +85,7 @@ export class QuoteLandingComponent implements OnInit {
     'customerId',
     'customerFullName',
     'amount',
+    'description',
     'status',
     'createdDate',
     'actions',
@@ -92,6 +94,7 @@ export class QuoteLandingComponent implements OnInit {
   readonly dataSource = new MatTableDataSource<QuoteTableRow>([]);
   readonly pageSizeOptions = [5, 10, 25];
   readonly quoteStatuses = QUOTE_STATUSES;
+  readonly descriptionMaxLength = QUOTE_DESCRIPTION_MAX_LENGTH;
   readonly loading$ = this.store.select(selectLoading);
   readonly saving$ = this.store.select(selectSaving);
   readonly error$ = this.store.select(selectError);
@@ -101,6 +104,7 @@ export class QuoteLandingComponent implements OnInit {
 
   editingQuoteId: number | null = null;
   editAmount: string | number = '';
+  editDescription = '';
   editStatus: QuoteStatus = 'Draft';
   editAttempted = false;
 
@@ -122,7 +126,7 @@ export class QuoteLandingComponent implements OnInit {
         return true;
       }
 
-      return [String(row.customerId), row.customerFullName, row.status]
+      return [String(row.customerId), row.customerFullName, row.description, row.status]
         .join(' ')
         .toLowerCase()
         .includes(term);
@@ -171,6 +175,7 @@ export class QuoteLandingComponent implements OnInit {
         this.editingQuoteId = editingQuoteId;
         if (editingQuoteId === null) {
           this.editAmount = '';
+          this.editDescription = '';
           this.editStatus = 'Draft';
           this.editAttempted = false;
         }
@@ -214,6 +219,7 @@ export class QuoteLandingComponent implements OnInit {
 
   startEdit(row: QuoteTableRow): void {
     this.editAmount = String(row.amount);
+    this.editDescription = row.description;
     this.editStatus = row.status;
     this.editAttempted = false;
     this.store.dispatch(QuoteActions.startQuoteEdit({ id: row.id }));
@@ -227,8 +233,15 @@ export class QuoteLandingComponent implements OnInit {
     this.editAttempted = true;
     const amountText = this.editAmount == null ? '' : String(this.editAmount).trim();
     const amount = Number(amountText);
+    const description = this.editDescription.trim();
 
-    if (!amountText || !Number.isFinite(amount) || amount < 0) {
+    if (
+      !amountText ||
+      !Number.isFinite(amount) ||
+      amount < 0 ||
+      !description ||
+      description.length > QUOTE_DESCRIPTION_MAX_LENGTH
+    ) {
       return;
     }
 
@@ -238,6 +251,7 @@ export class QuoteLandingComponent implements OnInit {
         quote: {
           customerId: row.customerId,
           amount,
+          description,
           status: this.editStatus,
         },
       }),

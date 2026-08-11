@@ -45,8 +45,8 @@
             <mat-label>Customer</mat-label>
             <mat-select formControlName="customerId" required>
               @for (customer of customerOptions; track customer.id) {
-                <mat-option [value]="customer.id">
-                  {{ customer.id }} — {{ customer.fullName }}
+                <mat-option [value]="customer.id" [attr.title]="customer.id + ' — ' + customer.fullName">
+                  {{ customer.id }} — {{ customer.fullName | truncate }}
                 </mat-option>
               }
             </mat-select>
@@ -93,6 +93,28 @@
                 | hasFormError: 'required' : form.controls.status.touched : submitted
             ) {
               <mat-error>Status is required</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full sm:col-span-2" subscriptSizing="fixed">
+            <mat-label>Description</mat-label>
+            <textarea
+              matInput
+              formControlName="description"
+              rows="3"
+              [attr.maxlength]="descriptionMaxLength"
+              required
+            ></textarea>
+            @if (
+              form.controls.description.errors
+                | hasFormError: 'required' : form.controls.description.touched : submitted
+            ) {
+              <mat-error>Description is required</mat-error>
+            } @else if (
+              form.controls.description.errors
+                | hasFormError: 'maxlength' : form.controls.description.touched : submitted
+            ) {
+              <mat-error>Description must be {{ descriptionMaxLength }} characters or fewer</mat-error>
             }
           </mat-form-field>
         </section>

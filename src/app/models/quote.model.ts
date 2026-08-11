@@ -8,10 +8,14 @@ export const QUOTE_STATUSES: readonly QuoteStatus[] = [
   'Rejected',
 ] as const;
 
+/** Maximum length for quote descriptions (enforced in UI and database writes). */
+export const QUOTE_DESCRIPTION_MAX_LENGTH = 250;
+
 /** Payload for creating or updating a quote. */
 export interface Quote {
   customerId: number;
   amount: number;
+  description: string;
   status: QuoteStatus;
 }
 
@@ -21,6 +25,7 @@ export interface QuoteEntity {
   customerId: number;
   customerFullName: string;
   amount: number;
+  description: string;
   status: QuoteStatus;
   createdDate: string;
 }

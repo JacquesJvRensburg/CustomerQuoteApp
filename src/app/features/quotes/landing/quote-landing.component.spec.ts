@@ -28,6 +28,7 @@ describe('QuoteLandingComponent', () => {
       customerId: 2,
       customerFullName: 'Sarah van Wyk',
       amount: 1500,
+      description: 'Lorem ipsum dolor sit amet.',
       status: 'Draft' as const,
       createdDate: '2026-01-01T00:00:00.000Z',
     },
@@ -158,6 +159,7 @@ describe('QuoteLandingComponent', () => {
     component.startEdit(rows[0]);
     (store.dispatch as jasmine.Spy).calls.reset();
     component.editAmount = '2000.5';
+    component.editDescription = 'Updated quote description.';
     component.editStatus = 'Sent';
     component.saveEdit(rows[0]);
 
@@ -167,6 +169,7 @@ describe('QuoteLandingComponent', () => {
         quote: {
           customerId: 2,
           amount: 2000.5,
+          description: 'Updated quote description.',
           status: 'Sent',
         },
       }),
