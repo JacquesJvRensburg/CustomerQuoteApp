@@ -1,59 +1,57 @@
-# CustomerQuoteApp
+# Customer Quote App
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.27.
+Angular app for managing customers (with addresses) and quotes. Data is stored in-browser with SQLite via [sql.js](https://sql.js.org/), persisted in `localStorage`. Demo customers and quotes are seeded on first run.
 
-## Development server
+## Stack
 
-To start a local development server, run:
+- Angular 19 (standalone components, lazy-loaded routes)
+- Angular Material + Tailwind CSS
+- NgRx (store, effects, store-devtools)
+- sql.js (SQLite in the browser)
+- RxJS
 
-```bash
-ng serve
-```
+## Features
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+- **Customers** — list, create, edit, and delete; manage addresses; optional nationality and university enrichment
+- **Quotes** — list, create, edit, and delete; statuses: Draft, Sent, Accepted, Rejected
+- **Nationality prediction** — [Nationalize.io](https://api.nationalize.io) from a surname
+- **University search** — [Hipolabs Universities API](http://universities.hipolabs.com) filtered by country
+- **Country list** — [countries.dev](https://countries.dev) for nationality selection and flags
 
-## Code scaffolding
+## Prerequisites
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+- Node.js and npm (compatible with Angular CLI 19)
 
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
+## Getting started
 
 ```bash
-ng build
+npm install
+npm start
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+Open `http://localhost:4200/`. `ng serve` uses `proxy.conf.json` so university search (`/api/universities`) is proxied to Hipolabs and avoids mixed-content issues.
 
-## Running unit tests
+## Scripts
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+| Command       | Description                                      |
+|---------------|--------------------------------------------------|
+| `npm start`   | Dev server (`ng serve`) with API proxy           |
+| `npm run build` | Production build → `dist/customer-quote-app/` |
+| `npm run watch` | Development build in watch mode                |
+| `npm test`    | Unit tests (Karma / Jasmine)                     |
 
-```bash
-ng test
+## Data
+
+- Tables: `customers`, `addresses`, `quotes` (see `src/app/core/database/database.schema.ts`)
+- Persistence key: `customer-quote-app-sqlite` in `localStorage`
+- In development, use **Export database** in the app to download the SQLite file, then open it with the [SQLite Viewer](https://marketplace.visualstudio.com/items?itemName=qwtel.sqlite-viewer) VS Code / Cursor extension to inspect table entries
+
+## Project layout
+
 ```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
+src/app/
+  core/          # Database and external API services
+  features/      # Customers and quotes (UI + NgRx)
+  models/        # Shared TypeScript interfaces
+  shared/        # Reusable components, pipes, utils
 ```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
