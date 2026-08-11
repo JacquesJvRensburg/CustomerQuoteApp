@@ -14,18 +14,23 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
-import { filter } from 'rxjs/operators';
+import { filter, take } from 'rxjs/operators';
 
 import {
   ConfirmDialogComponent,
   ConfirmDialogData,
 } from '../../../shared/confirm-dialog/confirm-dialog.component';
-import { TruncateLongWordsPipe } from '../../../shared/pipes/truncate-long-words.pipe';
+import { TruncatePipe } from '../../../shared/pipes/truncate.pipe';
 import { EditFieldInvalidPipe } from '../../../shared/pipes/edit-field-invalid.pipe';
+import { DatabaseExportButtonComponent } from '../../../shared/database-export-button/database-export-button.component';
 import { FeatureSwitcherComponent } from '../../../shared/feature-switcher/feature-switcher.component';
+import { CustomerNationalityPanelComponent } from '../nationality/customer-nationality-panel.component';
+import { CustomerUniversityPanelComponent } from '../university/customer-university-panel.component';
 import { CustomerActions } from '../store/customer.actions';
 import {
   selectCustomerTableRows,
+  selectDraftNationalityCode,
+  selectDraftUniversity,
   selectEditingCustomerId,
   selectError,
   selectFilter,
@@ -37,6 +42,11 @@ interface CustomerTableRow {
   id: number;
   firstName: string;
   lastName: string;
+  nationalityCode: string | null;
+  nationalityName: string | null;
+  nationalityFlagUrl: string;
+  universityName: string | null;
+  universityWebsite: string | null;
   addressSearchText: string;
 }
 
@@ -44,6 +54,9 @@ interface CustomerTableRow {
   selector: 'app-customer-landing',
   imports: [
     AsyncPipe,
+    CustomerNationalityPanelComponent,
+    CustomerUniversityPanelComponent,
+    DatabaseExportButtonComponent,
     EditFieldInvalidPipe,
     FeatureSwitcherComponent,
     FormsModule,
@@ -59,7 +72,7 @@ interface CustomerTableRow {
     MatTooltipModule,
     NgClass,
     RouterLink,
-    TruncateLongWordsPipe,
+    TruncatePipe,
   ],
   templateUrl: './customer-landing.component.html',
 })
@@ -73,6 +86,8 @@ export class CustomerLandingComponent implements OnInit {
     'id',
     'firstName',
     'lastName',
+    'nationality',
+    'university',
     'addresses',
     'quotes',
     'actions',
@@ -104,7 +119,15 @@ export class CustomerLandingComponent implements OnInit {
         return true;
       }
 
-      return [row.firstName, row.lastName, row.addressSearchText]
+      return [
+        row.firstName,
+        row.lastName,
+        row.nationalityName,
+        row.nationalityCode,
+        row.universityName,
+        row.addressSearchText,
+      ]
+        .filter((value): value is string => !!value)
         .join(' ')
         .toLowerCase()
         .includes(term);
@@ -154,6 +177,7 @@ export class CustomerLandingComponent implements OnInit {
 
   ngOnInit(): void {
     this.store.dispatch(CustomerActions.loadCustomers());
+    this.store.dispatch(CustomerActions.loadCountries());
   }
 
   applyFilter(value: string): void {
@@ -180,13 +204,33 @@ export class CustomerLandingComponent implements OnInit {
       return;
     }
 
-    this.store.dispatch(
-      CustomerActions.updateCustomer({
-        id: row.id,
-        firstName,
-        lastName,
-      }),
-    );
+    this.store
+      .select(selectDraftNationalityCode)
+      .pipe(take(1))
+      .subscribe((nationalityCode) => {
+        this.store
+          .select(selectDraftUniversity)
+          .pipe(take(1))
+          .subscribe((draftUniversity) => {
+            const trimmedNationality = nationalityCode?.trim() ?? '';
+            const universityName = draftUniversity?.name?.trim() ?? '';
+
+            if (!trimmedNationality || !universityName) {
+              return;
+            }
+
+            this.store.dispatch(
+              CustomerActions.updateCustomer({
+                id: row.id,
+                firstName,
+                lastName,
+                nationalityCode: trimmedNationality,
+                universityName,
+                universityWebsite: draftUniversity?.website?.trim() || null,
+              }),
+            );
+          });
+      });
   }
 
   deleteCustomer(row: CustomerTableRow): void {

@@ -32,15 +32,18 @@
       class="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200/80 bg-gradient-to-r from-slate-50/90 to-white/40 px-5 py-5 sm:px-6"
     >
       <app-feature-switcher activeFeature="customers" />
-      <a
-        mat-flat-button
-        color="primary"
-        class="!rounded-full !px-5"
-        routerLink="/customers/new"
-      >
-        <mat-icon>person_add</mat-icon>
-        Create customer
-      </a>
+      <div class="flex flex-wrap items-center gap-2">
+        <app-database-export-button />
+        <a
+          mat-flat-button
+          color="primary"
+          class="!rounded-full !px-5"
+          routerLink="/customers/new"
+        >
+          <mat-icon>person_add</mat-icon>
+          Create customer
+        </a>
+      </div>
     </div>
 
     <div class="px-2 py-2 sm:px-4 sm:py-3">
@@ -60,10 +63,10 @@
               <input
                 matInput
                 type="search"
-                placeholder="First name, last name, or address"
+                placeholder="First name, last name, nationality, university, or address"
                 [(ngModel)]="filterValue"
                 (ngModelChange)="applyFilter($event)"
-                aria-label="Filter customers by first name, last name, or address"
+                aria-label="Filter customers by first name, last name, nationality, university, or address"
               />
             </mat-form-field>
           </div>
@@ -79,7 +82,9 @@
             >
               <ng-container matColumnDef="id">
                 <th mat-header-cell *matHeaderCellDef>ID</th>
-                <td mat-cell *matCellDef="let row" class="!text-slate-500">{{ row.id }}</td>
+                <td mat-cell *matCellDef="let row" class="!text-slate-500">
+                  {{ row.id | truncate }}
+                </td>
               </ng-container>
 
               <ng-container matColumnDef="firstName">
@@ -109,7 +114,7 @@
                       </span>
                     </div>
                   } @else {
-                    {{ row.firstName | truncateLongWords }}
+                    {{ row.firstName | truncate }}
                   }
                 </td>
               </ng-container>
@@ -141,7 +146,65 @@
                       </span>
                     </div>
                   } @else {
-                    {{ row.lastName | truncateLongWords }}
+                    {{ row.lastName | truncate }}
+                  }
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="nationality">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header="nationalityName">
+                  Nationality
+                </th>
+                <td mat-cell *matCellDef="let row" class="!text-slate-700">
+                  @if (row.nationalityCode) {
+                    <div class="flex min-w-0 items-center gap-2">
+                      @if (row.nationalityFlagUrl) {
+                        <img
+                          class="h-4 w-6 shrink-0 rounded-sm object-cover shadow-sm"
+                          [src]="row.nationalityFlagUrl"
+                          [alt]="''"
+                          aria-hidden="true"
+                          loading="lazy"
+                        />
+                      }
+                      <span class="min-w-0" [attr.title]="row.nationalityName">{{
+                        row.nationalityName | truncate
+                      }}</span>
+                    </div>
+                  } @else {
+                    <span class="text-slate-400">—</span>
+                  }
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="university">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header="universityName">
+                  University
+                </th>
+                <td mat-cell *matCellDef="let row" class="!text-slate-700">
+                  @if (row.universityName) {
+                    <div class="min-w-0">
+                      <p
+                        class="m-0 font-medium text-slate-900"
+                        [attr.title]="row.universityName"
+                      >
+                        {{ row.universityName | truncate }}
+                      </p>
+                      @if (row.universityWebsite) {
+                        <a
+                          class="m-0 block text-xs text-teal-700 hover:underline"
+                          [href]="row.universityWebsite"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          [attr.title]="row.universityWebsite"
+                          (click)="$event.stopPropagation()"
+                        >
+                          {{ row.universityWebsite | truncate }}
+                        </a>
+                      }
+                    </div>
+                  } @else {
+                    <span class="text-slate-400">—</span>
                   }
                 </td>
               </ng-container>
@@ -252,11 +315,22 @@
 
             <mat-paginator
               class="!bg-transparent"
-              [pageSize]="10"
+              [pageSize]="5"
               [pageSizeOptions]="pageSizeOptions"
               showFirstLastButtons
               aria-label="Select customer page"
             ></mat-paginator>
+
+            @if (editingCustomerId !== null) {
+              <div class="flex flex-col gap-4 px-2 pb-4 sm:px-3">
+                <app-customer-nationality-panel
+                  [surname]="editLastName"
+                  [preserveSavedDraft]="true"
+                  [showRequiredError]="editAttempted"
+                />
+                <app-customer-university-panel [showRequiredError]="editAttempted" />
+              </div>
+            }
           </div>
         }
       }

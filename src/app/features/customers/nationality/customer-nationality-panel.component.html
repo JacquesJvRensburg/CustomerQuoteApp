@@ -1,0 +1,181 @@
+<section
+  class="rounded-xl border border-teal-200/70 bg-gradient-to-br from-teal-50/80 to-cyan-50/40 p-4 shadow-sm shadow-teal-900/5"
+  aria-label="Nationality suggestion"
+>
+  <div class="mb-3 flex items-center gap-2">
+    <mat-icon class="!text-teal-700" aria-hidden="true">public</mat-icon>
+    <div>
+      <h2 class="m-0 text-sm font-medium uppercase tracking-[0.18em] text-teal-800/80">
+        Nationality <span class="text-red-600" aria-hidden="true">*</span>
+      </h2>
+      <p class="m-0 mt-0.5 text-sm text-slate-600">
+        Confirm a predicted nationality or choose another country
+      </p>
+    </div>
+  </div>
+
+  @if (showRequiredError() && !selectedCountry()) {
+    <p class="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+      Nationality is required
+    </p>
+  }
+
+  @if (selectedCountry(); as selected) {
+    <div
+      class="mb-4 flex items-center justify-between gap-3 rounded-lg border border-teal-300/70 bg-white/80 px-3 py-2"
+      role="status"
+    >
+      <div class="flex min-w-0 items-center gap-2">
+        <img
+          class="h-5 w-7 shrink-0 rounded-sm object-cover shadow-sm"
+          [src]="flagUrl(selected)"
+          [alt]="''"
+          aria-hidden="true"
+          loading="lazy"
+        />
+        <div class="min-w-0">
+          <p class="m-0 text-xs font-medium uppercase tracking-wide text-teal-800/70">
+            Selected nationality
+          </p>
+          <p class="m-0 truncate text-sm font-medium text-slate-900">
+            {{ selected.name }}
+          </p>
+        </div>
+      </div>
+      <button mat-button type="button" class="!shrink-0" (click)="clearSelection()">
+        Clear
+      </button>
+    </div>
+  }
+
+  @if (!hasQueried()) {
+    <p class="m-0 text-sm text-slate-500" aria-live="polite">
+      Enter a last name to see nationality predictions.
+    </p>
+  } @else {
+    <div class="flex flex-col gap-4" aria-live="polite">
+      @if (predictionsLoading()) {
+        <div class="flex items-center gap-3 text-sm text-slate-600">
+          <mat-spinner diameter="22"></mat-spinner>
+          <span>Looking up nationality…</span>
+        </div>
+      } @else if (predictionsError()) {
+        <p class="m-0 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900" role="alert">
+          {{ predictionsError() }}
+        </p>
+      } @else if (predictions().length === 0) {
+        <p class="m-0 text-sm text-slate-500">
+          No nationality prediction available for this name. Pick a country below.
+        </p>
+      } @else {
+        <div>
+          <p class="m-0 mb-2 text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
+            Predictions
+          </p>
+          <div
+            class="flex flex-col gap-2"
+            role="radiogroup"
+            aria-label="Predicted nationalities"
+          >
+            @for (prediction of predictions(); track prediction.alpha2Code) {
+              <button
+                type="button"
+                role="radio"
+                class="flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left transition-colors hover:border-teal-300"
+                [ngClass]="
+                  isSelected(prediction.alpha2Code)
+                    ? 'border-teal-500 bg-teal-100 ring-2 ring-teal-300'
+                    : 'border-white bg-white/70'
+                "
+                [attr.aria-checked]="isSelected(prediction.alpha2Code)"
+                (click)="selectPrediction(prediction.alpha2Code)"
+              >
+                <div class="flex min-w-0 items-center gap-2">
+                  <img
+                    class="h-5 w-7 shrink-0 rounded-sm object-cover shadow-sm"
+                    [src]="flagUrl(prediction)"
+                    [alt]="''"
+                    aria-hidden="true"
+                    loading="lazy"
+                  />
+                  <p class="m-0 min-w-0 truncate text-sm font-medium text-slate-900">
+                    {{ prediction.name }}
+                  </p>
+                </div>
+                <span
+                  class="shrink-0 rounded-md bg-teal-100/90 px-2 py-1 text-sm font-medium tabular-nums text-teal-900"
+                >
+                  {{ prediction.probability | percent: '1.0-1' }}
+                </span>
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      <div>
+        <p class="m-0 mb-2 text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
+          Or choose another country
+        </p>
+        <div class="relative">
+          <mat-form-field appearance="outline" class="w-full" subscriptSizing="fixed">
+            <mat-label>Type to filter by name or code</mat-label>
+            <input
+              #countrySearchInput
+              matInput
+              type="text"
+              id="nationality-country-filter"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+              data-lpignore="true"
+              data-form-type="other"
+              aria-label="Filter countries by name or code"
+              aria-autocomplete="list"
+              [attr.aria-expanded]="countryDropdownOpen()"
+              [readonly]="countrySearchReadonly()"
+              (input)="onCountrySearchInput($event)"
+              (focus)="onCountrySearchFocus($event)"
+              (blur)="onCountrySearchBlur()"
+            />
+          </mat-form-field>
+
+          @if (countryDropdownOpen() && countryQuery().trim() && filteredCountries().length > 0) {
+            <ul
+              class="absolute z-20 m-0 max-h-60 w-full list-none overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg shadow-slate-900/10"
+              role="listbox"
+              aria-label="Country search results"
+            >
+              @for (country of filteredCountries(); track country.alpha2Code) {
+                <li
+                  role="option"
+                  class="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm text-slate-900 hover:bg-teal-50"
+                  [attr.aria-selected]="isSelected(country.alpha2Code)"
+                  (mousedown)="selectCountryFromList(country)"
+                >
+                  <img
+                    class="h-4 w-6 shrink-0 rounded-sm object-cover shadow-sm"
+                    [src]="flagUrl(country)"
+                    [alt]="''"
+                    aria-hidden="true"
+                    loading="lazy"
+                  />
+                  <span class="min-w-0 truncate">{{ country.name }}</span>
+                </li>
+              }
+            </ul>
+          } @else if (
+            countryDropdownOpen() && countryQuery().trim() && filteredCountries().length === 0
+          ) {
+            <p
+              class="absolute z-20 m-0 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-lg"
+              role="status"
+            >
+              No countries match your search.
+            </p>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</section>

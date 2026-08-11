@@ -5,7 +5,10 @@ export const DATABASE_SCHEMA = `
   CREATE TABLE IF NOT EXISTS customers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     firstName TEXT NOT NULL,
-    lastName TEXT NOT NULL
+    lastName TEXT NOT NULL,
+    nationalityCode TEXT,
+    universityName TEXT,
+    universityWebsite TEXT
   );
 
   CREATE TABLE IF NOT EXISTS addresses (

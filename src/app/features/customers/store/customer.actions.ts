@@ -1,7 +1,9 @@
 import { createActionGroup, emptyProps, props } from '@ngrx/store';
 
 import { AddressEntity } from '../../../models/address.model';
+import { Country, CountryPrediction } from '../../../models/country.model';
 import { Customer, CustomerEntity } from '../../../models/customer.model';
+import { University } from '../../../models/university.model';
 
 export const CustomerActions = createActionGroup({
   source: 'Customers',
@@ -9,10 +11,20 @@ export const CustomerActions = createActionGroup({
     'Load Customers': emptyProps(),
     'Load Customers Success': props<{ customers: CustomerEntity[] }>(),
     'Load Customers Failure': props<{ error: string }>(),
+    'Reseed Database': emptyProps(),
+    'Reseed Database Success': props<{ customers: CustomerEntity[] }>(),
+    'Reseed Database Failure': props<{ error: string }>(),
     'Create Customer': props<{ customer: Customer }>(),
     'Create Customer Success': props<{ customer: CustomerEntity }>(),
     'Create Customer Failure': props<{ error: string }>(),
-    'Update Customer': props<{ id: number; firstName: string; lastName: string }>(),
+    'Update Customer': props<{
+      id: number;
+      firstName: string;
+      lastName: string;
+      nationalityCode: string | null;
+      universityName: string | null;
+      universityWebsite: string | null;
+    }>(),
     'Update Customer Success': props<{ customer: CustomerEntity }>(),
     'Update Customer Failure': props<{ error: string }>(),
     'Delete Customer': props<{ id: number }>(),
@@ -29,5 +41,20 @@ export const CustomerActions = createActionGroup({
     'Cancel Customer Edit': emptyProps(),
     'Start Address Edit': props<{ id: number }>(),
     'Cancel Address Edit': emptyProps(),
+    // Nationality panel
+    'Set Draft Nationality': props<{ nationalityCode: string | null }>(),
+    'Load Countries': emptyProps(),
+    'Load Countries Success': props<{ countries: Country[] }>(),
+    'Load Countries Failure': props<{ error: string }>(),
+    'Predict Nationality': props<{ surname: string }>(),
+    'Predict Nationality Success': props<{ predictions: CountryPrediction[] }>(),
+    'Predict Nationality Failure': props<{ error: string }>(),
+    'Clear Nationality Predictions': emptyProps(),
+    // University search
+    'Set Draft University': props<{ university: University | null }>(),
+    'Search Universities': props<{ countryName: string; query: string }>(),
+    'Search Universities Success': props<{ results: University[] }>(),
+    'Search Universities Failure': props<{ error: string }>(),
+    'Clear University Search': emptyProps(),
   },
 });
