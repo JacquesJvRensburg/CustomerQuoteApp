@@ -303,6 +303,16 @@ export class CustomerNationalityPanelComponent implements OnInit, AfterViewInit 
   clearSelection(): void {
     this.store.dispatch(CustomerActions.setDraftNationality({ nationalityCode: null }));
     this.resetCountrySearch();
+
+    const trimmed = this.surname().trim();
+    if (trimmed) {
+      this.hasQueried.set(true);
+      this.store.dispatch(CustomerActions.predictNationality({ surname: trimmed }));
+      return;
+    }
+
+    this.hasQueried.set(false);
+    this.store.dispatch(CustomerActions.clearNationalityPredictions());
   }
 
   isSelected(countryCode: string): boolean {

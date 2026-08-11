@@ -74,11 +74,11 @@
         <p class="m-0 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900" role="alert">
           {{ predictionsError() }}
         </p>
-      } @else if (predictions().length === 0) {
+      } @else if (predictions().length === 0 && !selectedCountry()) {
         <p class="m-0 text-sm text-slate-500">
           No nationality prediction available for this name. Pick a country below.
         </p>
-      } @else {
+      } @else if (predictions().length > 0) {
         <div>
           <p class="m-0 mb-2 text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
             Predictions
