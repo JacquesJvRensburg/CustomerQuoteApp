@@ -5,7 +5,7 @@ import initSqlJs, { Database, SqlJsStatic } from 'sql.js';
 
 import { Address, AddressEntity } from '../../models/address.model';
 import { Customer, CustomerEntity } from '../../models/customer.model';
-import { Quote, QuoteEntity, QuoteStatus } from '../../models/quote.model';
+import { Quote, QuoteEntity, QuoteStatus, QUOTE_DESCRIPTION_MAX_LENGTH } from '../../models/quote.model';
 import { DATABASE_SCHEMA } from './database.schema';
 
 const DB_STORAGE_KEY = 'customer-quote-app-sqlite';
@@ -154,7 +154,7 @@ export class DatabaseService {
     return this.initialize().pipe(
       map((db) => {
         const result = db.exec(
-          'SELECT id, firstName, lastName, nationalityCode, universityName, universityWebsite FROM customers ORDER BY id ASC',
+          'SELECT id, firstName, lastName, nationalityCode, universityName, universityWebsite FROM customers ORDER BY id DESC',
         );
 
         if (!result.length || !result[0].values.length) {
@@ -307,6 +307,8 @@ export class DatabaseService {
   saveQuote(quote: Quote): Observable<QuoteEntity> {
     return this.initialize().pipe(
       map((db) => {
+        this.assertQuoteDescription(quote.description);
+
         const customer = this.findCustomerRow(db, quote.customerId);
         if (!customer) {
           throw new Error(`Customer with id ${quote.customerId} not found`);
@@ -314,9 +316,9 @@ export class DatabaseService {
 
         const createdDate = new Date().toISOString();
         db.run(
-          `INSERT INTO quotes (customerId, amount, status, createdDate)
-           VALUES (?, ?, ?, ?)`,
-          [quote.customerId, quote.amount, quote.status, createdDate],
+          `INSERT INTO quotes (customerId, amount, description, status, createdDate)
+           VALUES (?, ?, ?, ?, ?)`,
+          [quote.customerId, quote.amount, quote.description, quote.status, createdDate],
         );
 
         const id = this.getLastInsertId(db);
@@ -328,10 +330,12 @@ export class DatabaseService {
 
   updateQuote(
     id: number,
-    quote: Pick<Quote, 'customerId' | 'amount' | 'status'>,
+    quote: Pick<Quote, 'customerId' | 'amount' | 'description' | 'status'>,
   ): Observable<QuoteEntity> {
     return this.initialize().pipe(
       map((db) => {
+        this.assertQuoteDescription(quote.description);
+
         const existing = this.findQuoteRow(db, id);
         if (!existing) {
           throw new Error(`Quote with id ${id} not found`);
@@ -344,9 +348,9 @@ export class DatabaseService {
 
         db.run(
           `UPDATE quotes
-           SET customerId = ?, amount = ?, status = ?
+           SET customerId = ?, amount = ?, description = ?, status = ?
            WHERE id = ?`,
-          [quote.customerId, quote.amount, quote.status, id],
+          [quote.customerId, quote.amount, quote.description, quote.status, id],
         );
         this.persist(db);
         return this.getQuoteByIdSync(db, id);
@@ -411,6 +415,9 @@ export class DatabaseService {
     }
     if (!this.hasColumn(db, 'customers', 'universityWebsite')) {
       db.run('ALTER TABLE customers ADD COLUMN universityWebsite TEXT');
+    }
+    if (!this.hasColumn(db, 'quotes', 'description')) {
+      db.run("ALTER TABLE quotes ADD COLUMN description TEXT NOT NULL DEFAULT ''");
     }
   }
 
@@ -540,11 +547,12 @@ export class DatabaseService {
          c.firstName,
          c.lastName,
          q.amount,
+         q.description,
          q.status,
          q.createdDate
        FROM quotes q
        INNER JOIN customers c ON c.id = q.customerId
-       ORDER BY q.id ASC`,
+       ORDER BY q.createdDate DESC, q.id DESC`,
     );
 
     if (!result.length || !result[0].values.length) {
@@ -562,6 +570,7 @@ export class DatabaseService {
          c.firstName,
          c.lastName,
          q.amount,
+         q.description,
          q.status,
          q.createdDate
        FROM quotes q
@@ -583,6 +592,7 @@ export class DatabaseService {
       customerId: Number(row['customerId'] ?? 0),
       customerFullName: `${String(row['firstName'] ?? '')} ${String(row['lastName'] ?? '')}`.trim(),
       amount: Number(row['amount'] ?? 0),
+      description: String(row['description'] ?? ''),
       status: String(row['status'] ?? 'Draft') as QuoteStatus,
       createdDate: String(row['createdDate'] ?? ''),
     };
@@ -614,8 +624,9 @@ export class DatabaseService {
       customerId: row[1] as number,
       customerFullName: `${String(row[2] ?? '')} ${String(row[3] ?? '')}`.trim(),
       amount: row[4] as number,
-      status: String(row[5] ?? 'Draft') as QuoteStatus,
-      createdDate: String(row[6] ?? ''),
+      description: String(row[5] ?? ''),
+      status: String(row[6] ?? 'Draft') as QuoteStatus,
+      createdDate: String(row[7] ?? ''),
     };
   }
 
@@ -631,54 +642,71 @@ export class DatabaseService {
     const seedQuotes: Array<{
       customerId: number;
       amount: number;
+      description: string;
       status: QuoteStatus;
       createdDate: string;
     }> = [
       {
         customerId: thabo.id,
         amount: 18500,
+        description:
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt.',
         status: 'Accepted',
         createdDate: this.daysAgoIso(45),
       },
       {
         customerId: thabo.id,
         amount: 4200.5,
+        description:
+          'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip.',
         status: 'Sent',
         createdDate: this.daysAgoIso(12),
       },
       {
         customerId: thabo.id,
         amount: 9800,
+        description:
+          'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat.',
         status: 'Draft',
         createdDate: this.daysAgoIso(2),
       },
       {
         customerId: sarah.id,
         amount: 67250,
+        description:
+          'Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt.',
         status: 'Accepted',
         createdDate: this.daysAgoIso(30),
       },
       {
         customerId: sarah.id,
         amount: 15400.75,
+        description:
+          'Nulla facilisi morbi tempus iaculis urna id volutpat lacus laoreet non curabitur.',
         status: 'Rejected',
         createdDate: this.daysAgoIso(20),
       },
       {
         customerId: sarah.id,
         amount: 22100,
+        description:
+          'Gravida rutrum quisque non tellus orci ac auctor augue mauris augue neque gravida.',
         status: 'Sent',
         createdDate: this.daysAgoIso(5),
       },
       {
         customerId: james.id,
         amount: 31500,
+        description:
+          'Arcu non odio euismod lacinia at quis risus sed vulputate odio ut enim blandit.',
         status: 'Accepted',
         createdDate: this.daysAgoIso(60),
       },
       {
         customerId: james.id,
         amount: 8900,
+        description:
+          'Viverra nam libero justo laoreet sit amet cursus sit amet dictum sit amet justo.',
         status: 'Draft',
         createdDate: this.daysAgoIso(1),
       },
@@ -686,13 +714,27 @@ export class DatabaseService {
 
     for (const quote of seedQuotes) {
       db.run(
-        `INSERT INTO quotes (customerId, amount, status, createdDate)
-         VALUES (?, ?, ?, ?)`,
-        [quote.customerId, quote.amount, quote.status, quote.createdDate],
+        `INSERT INTO quotes (customerId, amount, description, status, createdDate)
+         VALUES (?, ?, ?, ?, ?)`,
+        [
+          quote.customerId,
+          quote.amount,
+          quote.description,
+          quote.status,
+          quote.createdDate,
+        ],
       );
     }
 
     this.persist(db);
+  }
+
+  private assertQuoteDescription(description: string): void {
+    if (description.length > QUOTE_DESCRIPTION_MAX_LENGTH) {
+      throw new Error(
+        `Description must be ${QUOTE_DESCRIPTION_MAX_LENGTH} characters or fewer`,
+      );
+    }
   }
 
   private daysAgoIso(days: number): string {

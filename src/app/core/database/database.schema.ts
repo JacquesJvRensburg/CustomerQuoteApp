@@ -25,6 +25,7 @@ export const DATABASE_SCHEMA = `
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     customerId INTEGER NOT NULL,
     amount REAL NOT NULL,
+    description TEXT NOT NULL DEFAULT '' CHECK (length(description) <= 250),
     status TEXT NOT NULL,
     createdDate TEXT NOT NULL,
     FOREIGN KEY (customerId) REFERENCES customers(id) ON DELETE CASCADE

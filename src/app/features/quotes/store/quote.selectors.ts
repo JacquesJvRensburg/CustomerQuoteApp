@@ -19,6 +19,7 @@ export const selectQuoteTableRows = createSelector(selectQuotes, (quotes) =>
     customerId: quote.customerId,
     customerFullName: quote.customerFullName,
     amount: quote.amount,
+    description: quote.description,
     status: quote.status,
     createdDate: quote.createdDate,
   })),

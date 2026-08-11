@@ -17,8 +17,9 @@ import { MatSelectModule } from '@angular/material/select';
 import { RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
 
-import { Quote, QuoteStatus, QUOTE_STATUSES } from '../../../models/quote.model';
+import { Quote, QuoteStatus, QUOTE_DESCRIPTION_MAX_LENGTH, QUOTE_STATUSES } from '../../../models/quote.model';
 import { HasFormErrorPipe } from '../../../shared/pipes/has-form-error.pipe';
+import { TruncatePipe } from '../../../shared/pipes/truncate.pipe';
 import { CustomerActions } from '../../customers/store/customer.actions';
 import { selectCustomers } from '../../customers/store/customer.selectors';
 import { QuoteActions } from '../store/quote.actions';
@@ -27,6 +28,7 @@ import { selectError, selectSaving } from '../store/quote.selectors';
 interface QuoteForm {
   customerId: FormControl<number | null>;
   amount: FormControl<number | null>;
+  description: FormControl<string>;
   status: FormControl<QuoteStatus>;
 }
 
@@ -48,6 +50,7 @@ interface CustomerOption {
     MatSelectModule,
     ReactiveFormsModule,
     RouterLink,
+    TruncatePipe,
   ],
   templateUrl: './quote-create.component.html',
 })
@@ -58,6 +61,7 @@ export class QuoteCreateComponent implements OnInit {
   readonly saving$ = this.store.select(selectSaving);
   readonly error$ = this.store.select(selectError);
   readonly quoteStatuses = QUOTE_STATUSES;
+  readonly descriptionMaxLength = QUOTE_DESCRIPTION_MAX_LENGTH;
 
   customerOptions: CustomerOption[] = [];
   submitted = false;
@@ -68,6 +72,9 @@ export class QuoteCreateComponent implements OnInit {
     }),
     amount: this.formBuilder.control<number | null>(null, {
       validators: [Validators.required, Validators.min(0)],
+    }),
+    description: this.formBuilder.nonNullable.control('', {
+      validators: [Validators.required, Validators.maxLength(QUOTE_DESCRIPTION_MAX_LENGTH)],
     }),
     status: this.formBuilder.nonNullable.control<QuoteStatus>('Draft', {
       validators: [Validators.required],
@@ -102,6 +109,7 @@ export class QuoteCreateComponent implements OnInit {
     const quote: Quote = {
       customerId: raw.customerId!,
       amount: raw.amount!,
+      description: raw.description.trim(),
       status: raw.status,
     };
     this.store.dispatch(QuoteActions.createQuote({ quote }));

@@ -82,6 +82,7 @@ describe('QuoteCreateComponent', () => {
     component.form.setValue({
       customerId: 1,
       amount: 1500,
+      description: 'Lorem ipsum dolor sit amet.',
       status: 'Sent',
     });
     component.submit();
@@ -91,6 +92,7 @@ describe('QuoteCreateComponent', () => {
         quote: {
           customerId: 1,
           amount: 1500,
+          description: 'Lorem ipsum dolor sit amet.',
           status: 'Sent',
         },
       }),

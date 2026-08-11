@@ -4,6 +4,7 @@ import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 
 import { HipolabsUniversity, University } from '../../models/university.model';
+import { toHipolabsCountryName } from '../../shared/utils/hipolabs-country.util';
 
 @Injectable({
   providedIn: 'root',
@@ -14,7 +15,7 @@ export class UniversitiesService {
 
   /** Search universities in a country by partial name match. */
   searchUniversities(countryName: string, query: string): Observable<University[]> {
-    const trimmedCountry = countryName.trim();
+    const trimmedCountry = toHipolabsCountryName(countryName);
     const trimmedQuery = query.trim();
 
     if (!trimmedCountry) {

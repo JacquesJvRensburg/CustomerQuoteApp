@@ -53,6 +53,21 @@ describe('UniversitiesService', () => {
     request.flush(apiResults);
   });
 
+  it('should map countries.dev US name to the hipolabs country filter', () => {
+    service.searchUniversities('United States of America', 'harvard').subscribe((results) => {
+      expect(results).toEqual([]);
+    });
+
+    const request = httpMock.expectOne(
+      (req) =>
+        req.url === 'http://universities.hipolabs.com/search' &&
+        req.params.get('country') === 'United States' &&
+        req.params.get('name') === 'harvard',
+    );
+    expect(request.request.params.get('country')).toBe('United States');
+    request.flush([]);
+  });
+
   it('should return an empty array when the API returns no matches', () => {
     service.searchUniversities('South Africa', 'xyz').subscribe((results) => {
       expect(results).toEqual([]);
