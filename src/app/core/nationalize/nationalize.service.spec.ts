@@ -3,19 +3,28 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 
 import { NationalizeResponse } from '../../models/nationalize.model';
-import { NationalizeService } from './nationalize.service';
+import { NATIONALIZE_API_KEY, NationalizeService } from './nationalize.service';
 
 describe('NationalizeService', () => {
   let service: NationalizeService;
   let httpMock: HttpTestingController;
 
-  beforeEach(() => {
+  function setup(apiKey = ''): void {
     TestBed.configureTestingModule({
-      providers: [NationalizeService, provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        NationalizeService,
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: NATIONALIZE_API_KEY, useValue: apiKey },
+      ],
     });
 
     service = TestBed.inject(NationalizeService);
     httpMock = TestBed.inject(HttpTestingController);
+  }
+
+  beforeEach(() => {
+    setup();
   });
 
   afterEach(() => {
@@ -78,6 +87,32 @@ describe('NationalizeService', () => {
     expect(errorMessage).toBe('A name is required to predict nationality.');
   });
 
+  it('should omit apikey when none is configured', () => {
+    service.predictNationality('Molefe').subscribe();
+
+    const request = httpMock.expectOne(
+      (req) => req.url === 'https://api.nationalize.io' && req.params.get('name') === 'Molefe',
+    );
+    expect(request.request.params.has('apikey')).toBeFalse();
+    request.flush({ count: 0, name: 'Molefe', country: [] });
+  });
+
+  it('should include apikey when configured', () => {
+    TestBed.resetTestingModule();
+    setup('test-api-key');
+
+    service.predictNationality('Molefe').subscribe();
+
+    const request = httpMock.expectOne(
+      (req) =>
+        req.url === 'https://api.nationalize.io' &&
+        req.params.get('name') === 'Molefe' &&
+        req.params.get('apikey') === 'test-api-key',
+    );
+    expect(request.request.method).toBe('GET');
+    request.flush({ count: 0, name: 'Molefe', country: [] });
+  });
+
   it('should map a 429 response to a rate-limit message', () => {
     let errorMessage = '';
 
@@ -92,6 +127,23 @@ describe('NationalizeService', () => {
 
     expect(errorMessage).toBe(
       'Nationality lookup is rate limited. Please wait a moment and try again.',
+    );
+  });
+
+  it('should map a 401 response to an invalid API key message', () => {
+    let errorMessage = '';
+
+    service.predictNationality('Molefe').subscribe({
+      error: (error: Error) => {
+        errorMessage = error.message;
+      },
+    });
+
+    const request = httpMock.expectOne('https://api.nationalize.io?name=Molefe');
+    request.flush({ error: 'Invalid API key' }, { status: 401, statusText: 'Unauthorized' });
+
+    expect(errorMessage).toBe(
+      'Nationality lookup API key is invalid. Check environment.nationalizeApiKey.',
     );
   });
 
@@ -137,6 +189,8 @@ describe('NationalizeService', () => {
     const request = httpMock.expectOne('https://api.nationalize.io?name=Molefe');
     request.flush(null, { status: 500, statusText: 'Internal Server Error' });
 
-    expect(errorMessage).toBe('Http failure response for https://api.nationalize.io?name=Molefe: 500 Internal Server Error');
+    expect(errorMessage).toBe(
+      'Http failure response for https://api.nationalize.io?name=Molefe: 500 Internal Server Error',
+    );
   });
 });

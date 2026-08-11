@@ -31,6 +31,16 @@ npm start
 
 Open `http://localhost:4200/`. `ng serve` uses `proxy.conf.json` so university search (`/api/universities`) is proxied to Hipolabs and avoids mixed-content issues.
 
+### Nationalize API key (optional)
+
+Nationality prediction uses [Nationalize.io](https://nationalize.io). Without a key, requests share the public free-tier quota and may return 429 when that limit is exhausted.
+
+1. Sign up at [nationalize.io](https://nationalize.io) for a free API key (2,500 names/month).
+2. Set `nationalizeApiKey` in `src/environments/environment.development.ts` (local `npm start`) and/or `src/environments/environment.ts` (production builds).
+3. Restart the dev server after changing the key.
+
+Do not commit real API keys. The key is sent as the `apikey` query parameter and is visible in the browser bundle.
+
 ## Scripts
 
 | Command       | Description                                      |
