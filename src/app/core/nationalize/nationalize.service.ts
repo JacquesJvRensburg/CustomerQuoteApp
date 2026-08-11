@@ -1,7 +1,14 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
+import { inject, Injectable, InjectionToken } from '@angular/core';
 import { catchError, map, Observable, throwError } from 'rxjs';
 import { NationalizeCountry, NationalizeResponse } from '../../models/nationalize.model';
+import { environment } from '../../../environments/environment';
+
+/** Nationalize.io API key from environment config. */
+export const NATIONALIZE_API_KEY = new InjectionToken<string>('NATIONALIZE_API_KEY', {
+  providedIn: 'root',
+  factory: () => environment.nationalizeApiKey.trim(),
+});
 
 @Injectable({
   providedIn: 'root',
@@ -9,6 +16,7 @@ import { NationalizeCountry, NationalizeResponse } from '../../models/nationaliz
 export class NationalizeService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = 'https://api.nationalize.io';
+  private readonly apiKey = inject(NATIONALIZE_API_KEY);
 
   /**
    * Predict nationality from a surname (or full name).
@@ -21,10 +29,13 @@ export class NationalizeService {
       return throwError(() => new Error('A name is required to predict nationality.'));
     }
 
+    let params = new HttpParams().set('name', trimmedName);
+    if (this.apiKey) {
+      params = params.set('apikey', this.apiKey);
+    }
+
     return this.http
-      .get<NationalizeResponse>(this.apiUrl, {
-        params: { name: trimmedName },
-      })
+      .get<NationalizeResponse>(this.apiUrl, { params })
       .pipe(
         map((response) => response.country ?? []),
         catchError((error: unknown) => this.handleError(error)),
@@ -38,6 +49,15 @@ export class NationalizeService {
           () =>
             new Error(
               'Nationality lookup is rate limited. Please wait a moment and try again.',
+            ),
+        );
+      }
+
+      if (error.status === 401) {
+        return throwError(
+          () =>
+            new Error(
+              'Nationality lookup API key is invalid. Check environment.nationalizeApiKey.',
             ),
         );
       }
