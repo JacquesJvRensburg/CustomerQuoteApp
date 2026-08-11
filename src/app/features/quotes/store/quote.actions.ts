@@ -26,6 +26,7 @@ export const QuoteActions = createActionGroup({
     }>(),
     'Clear Mutation Error': emptyProps(),
     'Set Filter': props<{ filter: string; customerIdFilter: number | null }>(),
+    'Set Pagination': props<{ pageIndex: number; pageSize: number }>(),
     'Start Quote Edit': props<{ id: number }>(),
     'Cancel Quote Edit': emptyProps(),
   },

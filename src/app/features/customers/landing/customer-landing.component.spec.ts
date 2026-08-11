@@ -12,12 +12,15 @@ import {
   selectCustomersLoadError,
   selectCustomersLoading,
   selectCustomersMutationError,
+  selectCustomersPageIndex,
+  selectCustomersPageSize,
   selectCustomersSaving,
   selectDraftNationalityCode,
   selectDraftUniversity,
   selectEditingCustomerId,
   selectFilteredCustomerTableRows,
 } from '../store/customer.selectors';
+import { selectCustomerIdFilter } from '../../quotes/store/quote.selectors';
 
 describe('CustomerLandingComponent', () => {
   let store: MockStore;
@@ -50,9 +53,12 @@ describe('CustomerLandingComponent', () => {
             { selector: selectCustomersLoadError, value: null },
             { selector: selectCustomersMutationError, value: null },
             { selector: selectCustomersFilter, value: '' },
+            { selector: selectCustomersPageIndex, value: 0 },
+            { selector: selectCustomersPageSize, value: 5 },
             { selector: selectEditingCustomerId, value: null },
             { selector: selectDraftNationalityCode, value: null },
             { selector: selectDraftUniversity, value: null },
+            { selector: selectCustomerIdFilter, value: null },
           ],
         }),
       ],
@@ -81,6 +87,23 @@ describe('CustomerLandingComponent', () => {
 
     expect(store.dispatch).toHaveBeenCalledWith(
       CustomerActions.setFilter({ filter: 'thabo' }),
+    );
+  });
+
+  it('should dispatch setPagination when the page changes', () => {
+    const fixture = TestBed.createComponent(CustomerLandingComponent);
+    fixture.detectChanges();
+    (store.dispatch as jasmine.Spy).calls.reset();
+
+    fixture.componentInstance.onPage({
+      pageIndex: 2,
+      pageSize: 10,
+      length: 30,
+      previousPageIndex: 1,
+    });
+
+    expect(store.dispatch).toHaveBeenCalledWith(
+      CustomerActions.setPagination({ pageIndex: 2, pageSize: 10 }),
     );
   });
 

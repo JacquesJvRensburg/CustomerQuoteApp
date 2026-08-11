@@ -193,11 +193,19 @@ describe('quotesReducer', () => {
 
   it('should set filters and editing state', () => {
     const filtered = reducer(
-      initialQuotesState,
+      { ...initialQuotesState, pageIndex: 2 },
       QuoteActions.setFilter({ filter: 'thabo', customerIdFilter: 10 }),
     );
     expect(filtered.filter).toBe('thabo');
     expect(filtered.customerIdFilter).toBe(10);
+    expect(filtered.pageIndex).toBe(0);
+
+    const paged = reducer(
+      initialQuotesState,
+      QuoteActions.setPagination({ pageIndex: 3, pageSize: 10 }),
+    );
+    expect(paged.pageIndex).toBe(3);
+    expect(paged.pageSize).toBe(10);
 
     expect(reducer(initialQuotesState, QuoteActions.startQuoteEdit({ id: 1 })).editingQuoteId)
       .toBe(1);

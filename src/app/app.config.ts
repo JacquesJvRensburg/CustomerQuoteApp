@@ -4,7 +4,7 @@ import { ApplicationConfig, isDevMode, provideZoneChangeDetection } from '@angul
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter } from '@angular/router';
 import { provideEffects } from '@ngrx/effects';
-import { provideStore } from '@ngrx/store';
+import { provideState, provideStore } from '@ngrx/store';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
 
 import { routes } from './app.routes';
@@ -26,10 +26,9 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(),
     provideAnimationsAsync(),
     { provide: IMAGE_LOADER, useValue: passthroughImageLoader },
-    provideStore({
-      [customersFeature.name]: customersFeature.reducer,
-      [quotesFeature.name]: quotesFeature.reducer,
-    }),
+    provideStore(),
+    provideState(customersFeature),
+    provideState(quotesFeature),
     provideEffects([CustomerEffects, QuoteEffects]),
     provideStoreDevtools({ maxAge: 25, logOnly: !isDevMode() }),
   ],

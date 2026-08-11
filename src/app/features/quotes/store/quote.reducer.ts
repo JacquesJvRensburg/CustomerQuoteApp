@@ -15,6 +15,8 @@ export interface QuotesState {
   mutationError: string | null;
   filter: string;
   customerIdFilter: number | null;
+  pageIndex: number;
+  pageSize: number;
   editingQuoteId: number | null;
 }
 
@@ -28,6 +30,8 @@ export const initialQuotesState: QuotesState = {
   mutationError: null,
   filter: '',
   customerIdFilter: null,
+  pageIndex: 0,
+  pageSize: 5,
   editingQuoteId: null,
 };
 
@@ -141,6 +145,12 @@ const quotesReducer = createReducer(
     ...state,
     filter,
     customerIdFilter,
+    pageIndex: 0,
+  })),
+  on(QuoteActions.setPagination, (state, { pageIndex, pageSize }) => ({
+    ...state,
+    pageIndex,
+    pageSize,
   })),
   on(QuoteActions.startQuoteEdit, (state, { id }) => ({
     ...state,

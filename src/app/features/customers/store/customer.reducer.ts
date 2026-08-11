@@ -16,6 +16,8 @@ export interface CustomersState {
   loadError: string | null;
   mutationError: string | null;
   filter: string;
+  pageIndex: number;
+  pageSize: number;
   editingCustomerId: number | null;
   editingAddressId: number | null;
   draftNationalityCode: string | null;
@@ -40,6 +42,8 @@ export const initialCustomersState: CustomersState = {
   loadError: null,
   mutationError: null,
   filter: '',
+  pageIndex: 0,
+  pageSize: 5,
   editingCustomerId: null,
   editingAddressId: null,
   draftNationalityCode: null,
@@ -179,6 +183,12 @@ const customersReducer = createReducer(
   on(CustomerActions.setFilter, (state, { filter }) => ({
     ...state,
     filter,
+    pageIndex: 0,
+  })),
+  on(CustomerActions.setPagination, (state, { pageIndex, pageSize }) => ({
+    ...state,
+    pageIndex,
+    pageSize,
   })),
   on(CustomerActions.setDraftNationality, (state, { nationalityCode }) => {
     if (state.draftNationalityCode === nationalityCode) {
