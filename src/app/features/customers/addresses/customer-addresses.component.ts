@@ -10,22 +10,23 @@ import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
-import { filter, map, switchMap } from 'rxjs/operators';
+import { filter, map, switchMap, take } from 'rxjs';
 
 import { AddressEntity } from '../../../models/address.model';
 import {
   ConfirmDialogComponent,
   ConfirmDialogData,
 } from '../../../shared/confirm-dialog/confirm-dialog.component';
-import { TruncateLongWordsPipe } from '../../../shared/pipes/truncate-long-words.pipe';
 import { EditFieldInvalidPipe } from '../../../shared/pipes/edit-field-invalid.pipe';
+import { TruncateLongWordsPipe } from '../../../shared/pipes/truncate-long-words.pipe';
 import { CustomerActions } from '../store/customer.actions';
 import {
   selectCustomerById,
+  selectCustomersLoadError,
+  selectCustomersLoading,
+  selectCustomersMutationError,
+  selectCustomersSaving,
   selectEditingAddressId,
-  selectError,
-  selectLoading,
-  selectSaving,
 } from '../store/customer.selectors';
 
 @Component({
@@ -67,9 +68,10 @@ export class CustomerAddressesComponent implements OnInit {
     switchMap((customerId) => this.store.select(selectCustomerById(customerId))),
   );
 
-  readonly loading$ = this.store.select(selectLoading);
-  readonly saving$ = this.store.select(selectSaving);
-  readonly error$ = this.store.select(selectError);
+  readonly loading$ = this.store.select(selectCustomersLoading);
+  readonly saving$ = this.store.select(selectCustomersSaving);
+  readonly loadError$ = this.store.select(selectCustomersLoadError);
+  readonly mutationError$ = this.store.select(selectCustomersMutationError);
 
   editingAddressId: number | null = null;
   editStreet = '';
@@ -82,6 +84,8 @@ export class CustomerAddressesComponent implements OnInit {
     'border-cyan-300/80 bg-cyan-50 text-slate-900 ring-cyan-200/70 focus:border-cyan-500 focus:bg-white focus:ring-cyan-300';
   readonly editInputInvalidClass =
     'border-red-400 bg-red-50 text-slate-900 ring-red-200 focus:border-red-500 focus:bg-white focus:ring-red-300';
+
+  readonly trackByAddressId = (_index: number, address: AddressEntity): number => address.id;
 
   constructor() {
     this.store
@@ -101,6 +105,10 @@ export class CustomerAddressesComponent implements OnInit {
 
   ngOnInit(): void {
     this.store.dispatch(CustomerActions.loadCustomers());
+  }
+
+  dismissMutationError(): void {
+    this.store.dispatch(CustomerActions.clearMutationError());
   }
 
   startEdit(address: AddressEntity): void {
@@ -140,7 +148,11 @@ export class CustomerAddressesComponent implements OnInit {
     );
   }
 
-  deleteAddress(address: AddressEntity): void {
+  deleteAddress(address: AddressEntity, addressCount: number): void {
+    if (addressCount <= 1) {
+      return;
+    }
+
     const dialogRef = this.dialog.open<ConfirmDialogComponent, ConfirmDialogData, boolean>(
       ConfirmDialogComponent,
       {
@@ -154,7 +166,10 @@ export class CustomerAddressesComponent implements OnInit {
 
     dialogRef
       .afterClosed()
-      .pipe(filter((confirmed): confirmed is true => confirmed === true))
+      .pipe(
+        take(1),
+        filter((confirmed): confirmed is true => confirmed === true),
+      )
       .subscribe(() => {
         this.store.dispatch(CustomerActions.deleteAddress({ addressId: address.id }));
       });

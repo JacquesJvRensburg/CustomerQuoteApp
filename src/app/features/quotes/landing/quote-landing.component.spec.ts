@@ -10,11 +10,12 @@ import { QuoteActions } from '../store/quote.actions';
 import {
   selectCustomerIdFilter,
   selectEditingQuoteId,
-  selectError,
-  selectFilter,
-  selectLoading,
-  selectQuoteTableRows,
-  selectSaving,
+  selectFilteredQuotes,
+  selectQuotesFilter,
+  selectQuotesLoadError,
+  selectQuotesLoading,
+  selectQuotesMutationError,
+  selectQuotesSaving,
 } from '../store/quote.selectors';
 
 describe('QuoteLandingComponent', () => {
@@ -43,11 +44,12 @@ describe('QuoteLandingComponent', () => {
         provideRouter([]),
         provideMockStore({
           selectors: [
-            { selector: selectQuoteTableRows, value: rows },
-            { selector: selectLoading, value: false },
-            { selector: selectSaving, value: false },
-            { selector: selectError, value: null },
-            { selector: selectFilter, value: '' },
+            { selector: selectFilteredQuotes, value: rows },
+            { selector: selectQuotesLoading, value: false },
+            { selector: selectQuotesSaving, value: false },
+            { selector: selectQuotesLoadError, value: null },
+            { selector: selectQuotesMutationError, value: null },
+            { selector: selectQuotesFilter, value: '' },
             { selector: selectCustomerIdFilter, value: null },
             { selector: selectEditingQuoteId, value: null },
           ],
@@ -90,9 +92,28 @@ describe('QuoteLandingComponent', () => {
     );
   });
 
+  it('should clear sticky customer id filter when query param is absent', () => {
+    store.overrideSelector(selectCustomerIdFilter, 2);
+    store.overrideSelector(selectQuotesFilter, '2');
+    store.refreshState();
+
+    const fixture = TestBed.createComponent(QuoteLandingComponent);
+    fixture.detectChanges();
+    (store.dispatch as jasmine.Spy).calls.reset();
+
+    queryParamMap$.next(convertToParamMap({}));
+
+    expect(store.dispatch).toHaveBeenCalledWith(
+      QuoteActions.setFilter({
+        filter: '',
+        customerIdFilter: null,
+      }),
+    );
+  });
+
   it('should clear customer id filter when the user changes the text filter', () => {
     store.overrideSelector(selectCustomerIdFilter, 2);
-    store.overrideSelector(selectFilter, '2');
+    store.overrideSelector(selectQuotesFilter, '2');
     store.refreshState();
 
     const fixture = TestBed.createComponent(QuoteLandingComponent);

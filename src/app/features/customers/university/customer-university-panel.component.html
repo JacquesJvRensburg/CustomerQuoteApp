@@ -1,4 +1,4 @@
-@if (countryName(); as country) {
+@if (showPanel()) {
   <section
     class="rounded-xl border border-indigo-200/70 bg-gradient-to-br from-indigo-50/80 to-violet-50/40 p-4 shadow-sm shadow-indigo-900/5"
     aria-label="University search"
@@ -10,7 +10,13 @@
           University <span class="text-red-600" aria-hidden="true">*</span>
         </h2>
         <p class="m-0 mt-0.5 text-sm text-slate-600">
-          Search for a university in {{ country }}
+          @if (countryName(); as country) {
+            Search for a university in {{ country }}
+          } @else if (countriesLoading()) {
+            Loading country details…
+          } @else {
+            Select a nationality with a known country to search universities
+          }
         </p>
       </div>
     </div>
@@ -19,6 +25,16 @@
       <p class="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
         University is required
       </p>
+    }
+
+    @if (countriesError()) {
+      <div
+        class="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900"
+        role="alert"
+      >
+        <span>{{ countriesError() }}</span>
+        <button mat-button type="button" (click)="retryLoadCountries()">Retry</button>
+      </div>
     }
 
     @if (draftUniversity(); as selected) {
@@ -48,74 +64,91 @@
       </div>
     }
 
-    <div class="relative">
-      <mat-form-field appearance="outline" class="w-full" subscriptSizing="fixed">
-        <mat-label>Type to search universities</mat-label>
-        <input
-          #universitySearchInput
-          matInput
-          type="text"
-          id="university-search-filter"
-          autocomplete="off"
-          autocapitalize="off"
-          spellcheck="false"
-          data-lpignore="true"
-          data-form-type="other"
-          aria-label="Search universities by name"
-          aria-autocomplete="list"
-          [attr.aria-expanded]="dropdownOpen()"
-          [readonly]="searchReadonly()"
-          (input)="onUniversitySearchInput($event)"
-          (focus)="onUniversitySearchFocus($event)"
-          (blur)="onUniversitySearchBlur()"
-        />
-      </mat-form-field>
+    @if (countriesLoading() && !countryName()) {
+      <div class="flex items-center gap-2 text-sm text-slate-600" role="status">
+        <mat-spinner diameter="20"></mat-spinner>
+        <span>Loading countries…</span>
+      </div>
+    } @else if (countryName()) {
+      <div class="relative">
+        <mat-form-field appearance="outline" class="w-full" subscriptSizing="fixed">
+          <mat-label>Type to search universities</mat-label>
+          <input
+            #universitySearchInput
+            matInput
+            type="text"
+            id="university-search-filter"
+            role="combobox"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            data-lpignore="true"
+            data-form-type="other"
+            aria-label="Search universities by name"
+            aria-autocomplete="list"
+            aria-controls="university-search-listbox"
+            aria-haspopup="listbox"
+            [attr.aria-expanded]="dropdownOpen()"
+            [attr.aria-activedescendant]="activeDescendantId()"
+            [attr.aria-required]="true"
+            [readonly]="searchReadonly()"
+            (input)="onUniversitySearchInput($event)"
+            (focus)="onUniversitySearchFocus($event)"
+            (blur)="onUniversitySearchBlur()"
+            (keydown)="onUniversitySearchKeydown($event)"
+          />
+        </mat-form-field>
 
-      @if (searchLoading()) {
-        <div class="flex items-center gap-2 px-1 py-2 text-sm text-slate-600" aria-live="polite">
-          <mat-spinner diameter="20"></mat-spinner>
-          <span>Searching universities…</span>
-        </div>
-      } @else if (searchError()) {
-        <p class="m-0 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900" role="alert">
-          {{ searchError() }}
-        </p>
-      } @else if (dropdownOpen() && universityQuery().trim().length >= 2 && searchResults().length > 0) {
-        <ul
-          class="absolute z-20 m-0 max-h-60 w-full list-none overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg shadow-slate-900/10"
-          role="listbox"
-          aria-label="University search results"
-        >
-          @for (university of searchResults(); track university.name) {
-            <li
-              role="option"
-              class="cursor-pointer px-3 py-2 hover:bg-indigo-50"
-              (mousedown)="selectUniversity(university)"
-            >
-              <p class="m-0 truncate text-sm font-medium text-slate-900">{{ university.name }}</p>
-              @if (university.website) {
-                <p class="m-0 truncate text-xs text-slate-500">{{ university.website }}</p>
-              }
-            </li>
-          }
-        </ul>
-      } @else if (
-        dropdownOpen() && universityQuery().trim().length >= 2 && searchResults().length === 0
-      ) {
-        <p
-          class="absolute z-20 m-0 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-lg"
-          role="status"
-        >
-          No universities match your search.
-        </p>
-      } @else if (dropdownOpen() && universityQuery().trim().length > 0 && universityQuery().trim().length < 2) {
-        <p
-          class="absolute z-20 m-0 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-lg"
-          role="status"
-        >
-          Type at least 2 characters to search.
-        </p>
-      }
-    </div>
+        @if (searchLoading()) {
+          <div class="flex items-center gap-2 px-1 py-2 text-sm text-slate-600" aria-live="polite">
+            <mat-spinner diameter="20"></mat-spinner>
+            <span>Searching universities…</span>
+          </div>
+        } @else if (searchError()) {
+          <p class="m-0 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900" role="alert">
+            {{ searchError() }}
+          </p>
+        } @else if (dropdownOpen() && universityQuery().trim().length >= 2 && searchResults().length > 0) {
+          <ul
+            [id]="listboxId"
+            class="absolute z-20 m-0 max-h-60 w-full list-none overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg shadow-slate-900/10"
+            role="listbox"
+            aria-label="University search results"
+          >
+            @for (university of searchResults(); track trackUniversity($index, university); let i = $index) {
+              <li
+                [id]="'university-option-' + i"
+                role="option"
+                class="cursor-pointer px-3 py-2 hover:bg-indigo-50"
+                [class.bg-indigo-50]="activeOptionIndex() === i"
+                [attr.aria-selected]="activeOptionIndex() === i"
+                (mousedown)="selectUniversity(university)"
+              >
+                <p class="m-0 truncate text-sm font-medium text-slate-900">{{ university.name }}</p>
+                @if (university.website) {
+                  <p class="m-0 truncate text-xs text-slate-500">{{ university.website }}</p>
+                }
+              </li>
+            }
+          </ul>
+        } @else if (
+          dropdownOpen() && universityQuery().trim().length >= 2 && searchResults().length === 0
+        ) {
+          <p
+            class="absolute z-20 m-0 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-lg"
+            role="status"
+          >
+            No universities match your search.
+          </p>
+        } @else if (dropdownOpen() && universityQuery().trim().length > 0 && universityQuery().trim().length < 2) {
+          <p
+            class="absolute z-20 m-0 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-lg"
+            role="status"
+          >
+            Type at least 2 characters to search.
+          </p>
+        }
+      </div>
+    }
   </section>
 }

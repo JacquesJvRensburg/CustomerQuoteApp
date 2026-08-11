@@ -1,5 +1,5 @@
 import { AsyncPipe, CurrencyPipe, DatePipe, NgClass } from '@angular/common';
-import { Component, effect, inject, OnInit, viewChild } from '@angular/core';
+import { Component, DestroyRef, effect, inject, OnInit, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -14,10 +14,14 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
-import { combineLatest } from 'rxjs';
-import { filter } from 'rxjs/operators';
+import { filter, take, withLatestFrom } from 'rxjs';
 
-import { QuoteStatus, QUOTE_DESCRIPTION_MAX_LENGTH, QUOTE_STATUSES } from '../../../models/quote.model';
+import {
+  QuoteEntity,
+  QuoteStatus,
+  QUOTE_DESCRIPTION_MAX_LENGTH,
+  QUOTE_STATUSES,
+} from '../../../models/quote.model';
 import {
   ConfirmDialogComponent,
   ConfirmDialogData,
@@ -30,22 +34,13 @@ import { QuoteActions } from '../store/quote.actions';
 import {
   selectCustomerIdFilter,
   selectEditingQuoteId,
-  selectError,
-  selectFilter,
-  selectLoading,
-  selectQuoteTableRows,
-  selectSaving,
+  selectFilteredQuotes,
+  selectQuotesFilter,
+  selectQuotesLoadError,
+  selectQuotesLoading,
+  selectQuotesMutationError,
+  selectQuotesSaving,
 } from '../store/quote.selectors';
-
-interface QuoteTableRow {
-  id: number;
-  customerId: number;
-  customerFullName: string;
-  amount: number;
-  description: string;
-  status: QuoteStatus;
-  createdDate: string;
-}
 
 @Component({
   selector: 'app-quote-landing',
@@ -77,6 +72,7 @@ export class QuoteLandingComponent implements OnInit {
   private readonly store = inject(Store);
   private readonly dialog = inject(MatDialog);
   private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly paginator = viewChild(MatPaginator);
   private readonly sort = viewChild(MatSort);
 
@@ -91,15 +87,17 @@ export class QuoteLandingComponent implements OnInit {
     'actions',
   ] as const;
 
-  readonly dataSource = new MatTableDataSource<QuoteTableRow>([]);
+  readonly dataSource = new MatTableDataSource<QuoteEntity>([]);
   readonly pageSizeOptions = [5, 10, 25];
   readonly quoteStatuses = QUOTE_STATUSES;
   readonly descriptionMaxLength = QUOTE_DESCRIPTION_MAX_LENGTH;
-  readonly loading$ = this.store.select(selectLoading);
-  readonly saving$ = this.store.select(selectSaving);
-  readonly error$ = this.store.select(selectError);
+  readonly loading$ = this.store.select(selectQuotesLoading);
+  readonly saving$ = this.store.select(selectQuotesSaving);
+  readonly loadError$ = this.store.select(selectQuotesLoadError);
+  readonly mutationError$ = this.store.select(selectQuotesMutationError);
 
   filterValue = '';
+  private lastFilterKey = '';
   private customerIdFilter: number | null = null;
 
   editingQuoteId: number | null = null;
@@ -115,57 +113,65 @@ export class QuoteLandingComponent implements OnInit {
   readonly editInputInvalidClass =
     'border-red-400 bg-red-50 text-slate-900 ring-red-200 focus:border-red-500 focus:bg-white focus:ring-red-300';
 
+  readonly trackByQuoteId = (_index: number, row: QuoteEntity): number => row.id;
+
   constructor() {
-    this.dataSource.filterPredicate = (row) => {
-      if (this.customerIdFilter !== null) {
-        return row.customerId === this.customerIdFilter;
-      }
-
-      const term = this.filterValue.trim().toLowerCase();
-      if (!term) {
-        return true;
-      }
-
-      return [String(row.customerId), row.customerFullName, row.description, row.status]
-        .join(' ')
-        .toLowerCase()
-        .includes(term);
-    };
-
-    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
-      const raw = params.get('customerId');
-      if (raw === null) {
-        return;
-      }
-
-      const customerId = Number(raw);
-      if (Number.isInteger(customerId) && customerId > 0) {
-        this.store.dispatch(
-          QuoteActions.setFilter({
-            filter: String(customerId),
-            customerIdFilter: customerId,
-          }),
-        );
-      }
+    this.destroyRef.onDestroy(() => {
+      this.store.dispatch(QuoteActions.cancelQuoteEdit());
     });
 
+    this.route.queryParamMap
+      .pipe(
+        withLatestFrom(
+          this.store.select(selectCustomerIdFilter),
+          this.store.select(selectQuotesFilter),
+        ),
+        takeUntilDestroyed(),
+      )
+      .subscribe(([params, customerIdFilter, filterValue]) => {
+        const raw = params.get('customerId');
+        if (raw === null) {
+          if (customerIdFilter !== null) {
+            this.store.dispatch(
+              QuoteActions.setFilter({
+                filter: filterValue === String(customerIdFilter) ? '' : filterValue,
+                customerIdFilter: null,
+              }),
+            );
+          }
+          return;
+        }
+
+        const customerId = Number(raw);
+        if (Number.isInteger(customerId) && customerId > 0) {
+          this.store.dispatch(
+            QuoteActions.setFilter({
+              filter: String(customerId),
+              customerIdFilter: customerId,
+            }),
+          );
+        }
+      });
+
     this.store
-      .select(selectQuoteTableRows)
+      .select(selectFilteredQuotes)
       .pipe(takeUntilDestroyed())
       .subscribe((quotes) => {
         this.dataSource.data = quotes;
-        this.refreshFilter();
       });
 
-    combineLatest([
-      this.store.select(selectFilter),
-      this.store.select(selectCustomerIdFilter),
-    ])
+    this.store
+      .select(selectQuotesFilter)
       .pipe(takeUntilDestroyed())
-      .subscribe(([filterValue, customerIdFilter]) => {
+      .subscribe((filterValue) => {
         this.filterValue = filterValue;
+      });
+
+    this.store
+      .select(selectCustomerIdFilter)
+      .pipe(takeUntilDestroyed())
+      .subscribe((customerIdFilter) => {
         this.customerIdFilter = customerIdFilter;
-        this.refreshFilter();
       });
 
     this.store
@@ -209,15 +215,26 @@ export class QuoteLandingComponent implements OnInit {
       return;
     }
 
+    this.filterValue = nextValue;
     this.store.dispatch(
       QuoteActions.setFilter({
         filter: nextValue,
         customerIdFilter: null,
       }),
     );
+
+    const filterKey = nextValue.trim().toLowerCase();
+    if (filterKey !== this.lastFilterKey) {
+      this.lastFilterKey = filterKey;
+      this.dataSource.paginator?.firstPage();
+    }
   }
 
-  startEdit(row: QuoteTableRow): void {
+  dismissMutationError(): void {
+    this.store.dispatch(QuoteActions.clearMutationError());
+  }
+
+  startEdit(row: QuoteEntity): void {
     this.editAmount = String(row.amount);
     this.editDescription = row.description;
     this.editStatus = row.status;
@@ -229,7 +246,7 @@ export class QuoteLandingComponent implements OnInit {
     this.store.dispatch(QuoteActions.cancelQuoteEdit());
   }
 
-  saveEdit(row: QuoteTableRow): void {
+  saveEdit(row: QuoteEntity): void {
     this.editAttempted = true;
     const amountText = this.editAmount == null ? '' : String(this.editAmount).trim();
     const amount = Number(amountText);
@@ -258,7 +275,7 @@ export class QuoteLandingComponent implements OnInit {
     );
   }
 
-  deleteQuote(row: QuoteTableRow): void {
+  deleteQuote(row: QuoteEntity): void {
     const dialogRef = this.dialog.open<ConfirmDialogComponent, ConfirmDialogData, boolean>(
       ConfirmDialogComponent,
       {
@@ -272,17 +289,12 @@ export class QuoteLandingComponent implements OnInit {
 
     dialogRef
       .afterClosed()
-      .pipe(filter((confirmed): confirmed is true => confirmed === true))
+      .pipe(
+        take(1),
+        filter((confirmed): confirmed is true => confirmed === true),
+      )
       .subscribe(() => {
         this.store.dispatch(QuoteActions.deleteQuote({ id: row.id }));
       });
-  }
-
-  private refreshFilter(): void {
-    this.dataSource.filter = `${this.filterValue.trim().toLowerCase()}|${this.customerIdFilter ?? ''}`;
-
-    if (this.dataSource.paginator) {
-      this.dataSource.paginator.firstPage();
-    }
   }
 }

@@ -7,7 +7,12 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 import { CustomerCreateComponent } from './customer-create.component';
 import { CustomerActions } from '../store/customer.actions';
-import { selectDraftNationalityCode, selectDraftUniversity, selectError, selectSaving } from '../store/customer.selectors';
+import {
+  selectCustomersMutationError,
+  selectCustomersSaving,
+  selectDraftNationalityCode,
+  selectDraftUniversity,
+} from '../store/customer.selectors';
 
 describe('CustomerCreateComponent', () => {
   let store: MockStore;
@@ -21,8 +26,8 @@ describe('CustomerCreateComponent', () => {
         provideHttpClientTesting(),
         provideMockStore({
           selectors: [
-            { selector: selectSaving, value: false },
-            { selector: selectError, value: null },
+            { selector: selectCustomersSaving, value: false },
+            { selector: selectCustomersMutationError, value: null },
             { selector: selectDraftNationalityCode, value: null },
             { selector: selectDraftUniversity, value: null },
           ],

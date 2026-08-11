@@ -22,6 +22,14 @@ describe('CustomerAddressesComponent', () => {
     postalCode: '8001',
   };
 
+  const secondAddress: AddressEntity = {
+    id: 11,
+    street: '8 Beach Road',
+    suburb: 'Umhlanga',
+    city: 'Durban',
+    postalCode: '4319',
+  };
+
   const customer = {
     id: 1,
     firstName: 'Thabo',
@@ -29,7 +37,7 @@ describe('CustomerAddressesComponent', () => {
     nationalityCode: null,
     universityName: null,
     universityWebsite: null,
-    addresses: [address],
+    addresses: [address, secondAddress],
   };
 
   beforeEach(async () => {
@@ -43,10 +51,22 @@ describe('CustomerAddressesComponent', () => {
               customers: [customer],
               loading: false,
               saving: false,
-              error: null,
+              loadError: null,
+              mutationError: null,
               filter: '',
               editingCustomerId: null,
               editingAddressId: null,
+              draftNationalityCode: null,
+              countries: [],
+              countriesLoading: false,
+              countriesError: null,
+              predictions: [],
+              predictionsLoading: false,
+              predictionsError: null,
+              draftUniversity: null,
+              universitySearchResults: [],
+              universitySearchLoading: false,
+              universitySearchError: null,
             },
           },
         }),
@@ -163,7 +183,7 @@ describe('CustomerAddressesComponent', () => {
       afterClosed: () => of(true),
     } as never);
 
-    component.deleteAddress(address);
+    component.deleteAddress(address, 2);
 
     expect(dialogOpen).toHaveBeenCalled();
     expect(store.dispatch).toHaveBeenCalledWith(

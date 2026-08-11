@@ -2,8 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
-import { of } from 'rxjs';
-import { catchError, map, switchMap, tap, withLatestFrom } from 'rxjs/operators';
+import { catchError, concatMap, map, of, switchMap, tap, withLatestFrom } from 'rxjs';
 
 import { CountriesService } from '../../../core/countries/countries.service';
 import { DatabaseService } from '../../../core/database/database.service';
@@ -43,29 +42,10 @@ export class CustomerEffects {
     ),
   );
 
-  reseedDatabase$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(CustomerActions.reseedDatabase),
-      switchMap(() =>
-        this.database.reseed().pipe(
-          switchMap(() => this.database.getCustomers()),
-          map((customers) => CustomerActions.reseedDatabaseSuccess({ customers })),
-          catchError((error: unknown) =>
-            of(
-              CustomerActions.reseedDatabaseFailure({
-                error: error instanceof Error ? error.message : 'Failed to reseed database',
-              }),
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
-
   createCustomer$ = createEffect(() =>
     this.actions$.pipe(
       ofType(CustomerActions.createCustomer),
-      switchMap(({ customer }) =>
+      concatMap(({ customer }) =>
         this.database.saveCustomer(customer).pipe(
           map((savedCustomer) =>
             CustomerActions.createCustomerSuccess({ customer: savedCustomer }),
@@ -96,7 +76,7 @@ export class CustomerEffects {
   updateCustomer$ = createEffect(() =>
     this.actions$.pipe(
       ofType(CustomerActions.updateCustomer),
-      switchMap(({ id, firstName, lastName, nationalityCode, universityName, universityWebsite }) =>
+      concatMap(({ id, firstName, lastName, nationalityCode, universityName, universityWebsite }) =>
         this.database
           .updateCustomerNames(
             id,
@@ -107,15 +87,15 @@ export class CustomerEffects {
             universityWebsite,
           )
           .pipe(
-          map((customer) => CustomerActions.updateCustomerSuccess({ customer })),
-          catchError((error: unknown) =>
-            of(
-              CustomerActions.updateCustomerFailure({
-                error: error instanceof Error ? error.message : 'Failed to update customer',
-              }),
+            map((customer) => CustomerActions.updateCustomerSuccess({ customer })),
+            catchError((error: unknown) =>
+              of(
+                CustomerActions.updateCustomerFailure({
+                  error: error instanceof Error ? error.message : 'Failed to update customer',
+                }),
+              ),
             ),
           ),
-        ),
       ),
     ),
   );
@@ -123,7 +103,7 @@ export class CustomerEffects {
   deleteCustomer$ = createEffect(() =>
     this.actions$.pipe(
       ofType(CustomerActions.deleteCustomer),
-      switchMap(({ id }) =>
+      concatMap(({ id }) =>
         this.database.deleteCustomer(id).pipe(
           map(() => CustomerActions.deleteCustomerSuccess({ id })),
           catchError((error: unknown) =>
@@ -141,7 +121,7 @@ export class CustomerEffects {
   updateAddress$ = createEffect(() =>
     this.actions$.pipe(
       ofType(CustomerActions.updateAddress),
-      switchMap(({ address }) =>
+      concatMap(({ address }) =>
         this.database.updateAddress(address).pipe(
           map((customer) => CustomerActions.updateAddressSuccess({ customer })),
           catchError((error: unknown) =>
@@ -159,7 +139,7 @@ export class CustomerEffects {
   deleteAddress$ = createEffect(() =>
     this.actions$.pipe(
       ofType(CustomerActions.deleteAddress),
-      switchMap(({ addressId }) =>
+      concatMap(({ addressId }) =>
         this.database.deleteAddress(addressId).pipe(
           map((customer) => CustomerActions.deleteAddressSuccess({ customer })),
           catchError((error: unknown) =>

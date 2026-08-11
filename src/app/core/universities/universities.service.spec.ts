@@ -45,7 +45,7 @@ describe('UniversitiesService', () => {
 
     const request = httpMock.expectOne(
       (req) =>
-        req.url === 'http://universities.hipolabs.com/search' &&
+        req.url === '/api/universities/search' &&
         req.params.get('country') === 'South Africa' &&
         req.params.get('name') === 'cape',
     );
@@ -60,7 +60,7 @@ describe('UniversitiesService', () => {
 
     const request = httpMock.expectOne(
       (req) =>
-        req.url === 'http://universities.hipolabs.com/search' &&
+        req.url === '/api/universities/search' &&
         req.params.get('country') === 'United States' &&
         req.params.get('name') === 'harvard',
     );
@@ -75,7 +75,7 @@ describe('UniversitiesService', () => {
 
     const request = httpMock.expectOne(
       (req) =>
-        req.url === 'http://universities.hipolabs.com/search' &&
+        req.url === '/api/universities/search' &&
         req.params.get('country') === 'South Africa' &&
         req.params.get('name') === 'xyz',
     );
@@ -91,7 +91,7 @@ describe('UniversitiesService', () => {
       },
     });
 
-    httpMock.expectNone('http://universities.hipolabs.com/search');
+    httpMock.expectNone('/api/universities/search');
     expect(errorMessage).toBe('A country name is required to search universities.');
   });
 
@@ -104,7 +104,7 @@ describe('UniversitiesService', () => {
       },
     });
 
-    httpMock.expectNone('http://universities.hipolabs.com/search');
+    httpMock.expectNone('/api/universities/search');
     expect(errorMessage).toBe('Enter part of a university name to search.');
   });
 
@@ -117,7 +117,7 @@ describe('UniversitiesService', () => {
       },
     });
 
-    const request = httpMock.expectOne('http://universities.hipolabs.com/search?country=South%20Africa&name=cape');
+    const request = httpMock.expectOne('/api/universities/search?country=South%20Africa&name=cape');
     request.error(new ProgressEvent('error'), { status: 0, statusText: 'Unknown Error' });
 
     expect(errorMessage).toBe(

@@ -1,8 +1,6 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
-
+import { catchError, map, Observable, throwError } from 'rxjs';
 import { NationalizeCountry, NationalizeResponse } from '../../models/nationalize.model';
 
 @Injectable({
@@ -53,7 +51,7 @@ export class NationalizeService {
       return throwError(
         () =>
           new Error(
-            error.error?.error ?? error.message ?? 'Failed to predict nationality.',
+            this.readHttpErrorMessage(error) ?? error.message ?? 'Failed to predict nationality.',
           ),
       );
     }
@@ -63,5 +61,19 @@ export class NationalizeService {
     }
 
     return throwError(() => new Error('Failed to predict nationality.'));
+  }
+
+  private readHttpErrorMessage(error: HttpErrorResponse): string | null {
+    const body = error.error;
+    if (typeof body === 'string' && body.trim()) {
+      return body;
+    }
+
+    if (body && typeof body === 'object' && 'error' in body) {
+      const message = (body as { error?: unknown }).error;
+      return typeof message === 'string' && message.trim() ? message : null;
+    }
+
+    return null;
   }
 }

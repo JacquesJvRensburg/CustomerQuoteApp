@@ -20,6 +20,16 @@
     </p>
   }
 
+  @if (countriesError()) {
+    <div
+      class="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900"
+      role="alert"
+    >
+      <span>{{ countriesError() }}</span>
+      <button mat-button type="button" (click)="retryLoadCountries()">Retry</button>
+    </div>
+  }
+
   @if (selectedCountry(); as selected) {
     <div
       class="mb-4 flex items-center justify-between gap-3 rounded-lg border border-teal-300/70 bg-white/80 px-3 py-2"
@@ -27,11 +37,12 @@
     >
       <div class="flex min-w-0 items-center gap-2">
         <img
+          [ngSrc]="flagUrl(selected)"
+          width="28"
+          height="20"
           class="h-5 w-7 shrink-0 rounded-sm object-cover shadow-sm"
-          [src]="flagUrl(selected)"
-          [alt]="''"
+          alt=""
           aria-hidden="true"
-          loading="lazy"
         />
         <div class="min-w-0">
           <p class="m-0 text-xs font-medium uppercase tracking-wide text-teal-800/70">
@@ -77,7 +88,7 @@
             role="radiogroup"
             aria-label="Predicted nationalities"
           >
-            @for (prediction of predictions(); track prediction.alpha2Code) {
+            @for (prediction of predictions(); track prediction.alpha2Code; let i = $index) {
               <button
                 type="button"
                 role="radio"
@@ -89,14 +100,16 @@
                 "
                 [attr.aria-checked]="isSelected(prediction.alpha2Code)"
                 (click)="selectPrediction(prediction.alpha2Code)"
+                (keydown)="onPredictionKeydown($event, prediction.alpha2Code, i)"
               >
                 <div class="flex min-w-0 items-center gap-2">
                   <img
+                    [ngSrc]="flagUrl(prediction)"
+                    width="28"
+                    height="20"
                     class="h-5 w-7 shrink-0 rounded-sm object-cover shadow-sm"
-                    [src]="flagUrl(prediction)"
-                    [alt]="''"
+                    alt=""
                     aria-hidden="true"
-                    loading="lazy"
                   />
                   <p class="m-0 min-w-0 truncate text-sm font-medium text-slate-900">
                     {{ prediction.name }}
@@ -125,6 +138,7 @@
               matInput
               type="text"
               id="nationality-country-filter"
+              role="combobox"
               autocomplete="off"
               autocapitalize="off"
               spellcheck="false"
@@ -132,33 +146,42 @@
               data-form-type="other"
               aria-label="Filter countries by name or code"
               aria-autocomplete="list"
+              aria-controls="nationality-country-listbox"
+              aria-haspopup="listbox"
               [attr.aria-expanded]="countryDropdownOpen()"
+              [attr.aria-activedescendant]="activeDescendantId()"
+              [attr.aria-required]="true"
               [readonly]="countrySearchReadonly()"
               (input)="onCountrySearchInput($event)"
               (focus)="onCountrySearchFocus($event)"
               (blur)="onCountrySearchBlur()"
+              (keydown)="onCountrySearchKeydown($event)"
             />
           </mat-form-field>
 
           @if (countryDropdownOpen() && countryQuery().trim() && filteredCountries().length > 0) {
             <ul
+              [id]="listboxId"
               class="absolute z-20 m-0 max-h-60 w-full list-none overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg shadow-slate-900/10"
               role="listbox"
               aria-label="Country search results"
             >
-              @for (country of filteredCountries(); track country.alpha2Code) {
+              @for (country of filteredCountries(); track country.alpha2Code; let i = $index) {
                 <li
+                  [id]="'country-option-' + i"
                   role="option"
                   class="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm text-slate-900 hover:bg-teal-50"
-                  [attr.aria-selected]="isSelected(country.alpha2Code)"
+                  [class.bg-teal-50]="activeOptionIndex() === i"
+                  [attr.aria-selected]="isSelected(country.alpha2Code) || activeOptionIndex() === i"
                   (mousedown)="selectCountryFromList(country)"
                 >
                   <img
+                    [ngSrc]="flagUrl(country)"
+                    width="24"
+                    height="16"
                     class="h-4 w-6 shrink-0 rounded-sm object-cover shadow-sm"
-                    [src]="flagUrl(country)"
-                    [alt]="''"
+                    alt=""
                     aria-hidden="true"
-                    loading="lazy"
                   />
                   <span class="min-w-0 truncate">{{ country.name }}</span>
                 </li>

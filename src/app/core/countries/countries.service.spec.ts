@@ -106,4 +106,30 @@ describe('CountriesService', () => {
       'Http failure response for https://countries.dev/countries?fields=name,flag,flags,alpha2Code: 503 Service Unavailable',
     );
   });
+
+  it('should cache successful responses and allow retry after failure', () => {
+    let errorMessage = '';
+
+    service.getCountries().subscribe({
+      error: (error: Error) => {
+        errorMessage = error.message;
+      },
+    });
+
+    const failed = httpMock.expectOne('https://countries.dev/countries?fields=name,flag,flags,alpha2Code');
+    failed.error(new ProgressEvent('error'), { status: 0, statusText: 'Unknown Error' });
+    expect(errorMessage).toBe('Unable to reach the countries service. Check your connection.');
+
+    const retryResults: Country[][] = [];
+    service.getCountries().subscribe((countries) => retryResults.push(countries));
+
+    const retry = httpMock.expectOne('https://countries.dev/countries?fields=name,flag,flags,alpha2Code');
+    retry.flush(unsortedCountries);
+
+    expect(retryResults[0].map((country) => country.name)).toEqual([
+      'Botswana',
+      'Germany',
+      'South Africa',
+    ]);
+  });
 });

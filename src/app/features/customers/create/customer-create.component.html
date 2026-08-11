@@ -38,12 +38,17 @@
     </div>
 
     <div class="px-5 py-6 sm:px-6">
-      <div class="flex flex-col gap-8">
-        <div [formGroup]="form">
-          <section class="grid items-start gap-4 sm:grid-cols-2">
-            <mat-form-field appearance="outline" class="w-full" subscriptSizing="fixed">
-              <mat-label>First name</mat-label>
-              <input matInput formControlName="firstName" autocomplete="given-name" required />
+      <form
+        class="flex flex-col gap-8"
+        [formGroup]="form"
+        (ngSubmit)="submit()"
+        novalidate
+        autocomplete="off"
+      >
+        <section class="grid items-start gap-4 sm:grid-cols-2">
+          <mat-form-field appearance="outline" class="w-full" subscriptSizing="fixed">
+            <mat-label>First name</mat-label>
+            <input matInput formControlName="firstName" autocomplete="given-name" required />
             @if (
               form.controls.firstName.errors
                 | hasFormError: 'required' : form.controls.firstName.touched : submitted
@@ -73,15 +78,17 @@
             }
           </mat-form-field>
         </section>
-        </div>
 
-        <app-customer-nationality-panel
-          [surname]="(lastName$ | async) ?? ''"
-          [showRequiredError]="submitted"
-        />
-        <app-customer-university-panel [showRequiredError]="submitted" />
+        @defer (on idle) {
+          <app-customer-nationality-panel
+            [surname]="(lastName$ | async) ?? ''"
+            [showRequiredError]="submitted"
+          />
+          <app-customer-university-panel [showRequiredError]="submitted" />
+        } @placeholder {
+          <p class="m-0 text-sm text-slate-500" role="status">Loading nationality and university…</p>
+        }
 
-        <form class="flex flex-col gap-8" [formGroup]="form" (ngSubmit)="submit()" novalidate autocomplete="off">
         <section class="flex flex-col gap-4" formArrayName="addresses">
           <h2 class="m-0 text-sm font-medium uppercase tracking-[0.18em] text-slate-500">
             Addresses
@@ -210,8 +217,7 @@
             }
           </button>
         </div>
-        </form>
-      </div>
+      </form>
     </div>
   </section>
 </main>

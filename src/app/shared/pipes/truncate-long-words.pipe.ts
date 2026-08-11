@@ -1,5 +1,7 @@
 import { Pipe, PipeTransform } from '@angular/core';
 
+import { truncateLongWords } from '../utils/truncate.util';
+
 @Pipe({
   name: 'truncateLongWords',
 })
@@ -9,15 +11,6 @@ export class TruncateLongWordsPipe implements PipeTransform {
       return '';
     }
 
-    return value
-      .split(/(\s+)/)
-      .map((part) => {
-        if (/^\s+$/.test(part) || part.length <= maxWordLength) {
-          return part;
-        }
-
-        return `${part.slice(0, maxWordLength)}…`;
-      })
-      .join('');
+    return truncateLongWords(value, maxWordLength);
   }
 }

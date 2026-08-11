@@ -23,7 +23,10 @@ import { TruncatePipe } from '../../../shared/pipes/truncate.pipe';
 import { CustomerActions } from '../../customers/store/customer.actions';
 import { selectCustomers } from '../../customers/store/customer.selectors';
 import { QuoteActions } from '../store/quote.actions';
-import { selectError, selectSaving } from '../store/quote.selectors';
+import {
+  selectQuotesMutationError,
+  selectQuotesSaving,
+} from '../store/quote.selectors';
 
 interface QuoteForm {
   customerId: FormControl<number | null>;
@@ -58,8 +61,8 @@ export class QuoteCreateComponent implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
   private readonly store = inject(Store);
 
-  readonly saving$ = this.store.select(selectSaving);
-  readonly error$ = this.store.select(selectError);
+  readonly saving$ = this.store.select(selectQuotesSaving);
+  readonly error$ = this.store.select(selectQuotesMutationError);
   readonly quoteStatuses = QUOTE_STATUSES;
   readonly descriptionMaxLength = QUOTE_DESCRIPTION_MAX_LENGTH;
 

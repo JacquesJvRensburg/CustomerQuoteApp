@@ -9,7 +9,8 @@ export interface CustomersState {
   customers: CustomerEntity[];
   loading: boolean;
   saving: boolean;
-  error: string | null;
+  loadError: string | null;
+  mutationError: string | null;
   filter: string;
   editingCustomerId: number | null;
   editingAddressId: number | null;
@@ -30,7 +31,8 @@ export const initialCustomersState: CustomersState = {
   customers: [],
   loading: false,
   saving: false,
-  error: null,
+  loadError: null,
+  mutationError: null,
   filter: '',
   editingCustomerId: null,
   editingAddressId: null,
@@ -52,45 +54,29 @@ const customersReducer = createReducer(
   on(CustomerActions.loadCustomers, (state) => ({
     ...state,
     loading: state.customers.length === 0,
-    error: null,
+    loadError: null,
   })),
   on(CustomerActions.loadCustomersSuccess, (state, { customers }) => ({
     ...state,
     customers,
     loading: false,
-    error: null,
+    loadError: null,
   })),
   on(CustomerActions.loadCustomersFailure, (state, { error }) => ({
     ...state,
     loading: false,
-    error,
-  })),
-  on(CustomerActions.reseedDatabase, (state) => ({
-    ...state,
-    loading: true,
-    saving: false,
-    error: null,
-  })),
-  on(CustomerActions.reseedDatabaseSuccess, (state, { customers }) => ({
-    ...initialCustomersState,
-    customers,
-    loading: false,
-  })),
-  on(CustomerActions.reseedDatabaseFailure, (state, { error }) => ({
-    ...state,
-    loading: false,
-    error,
+    loadError: error,
   })),
   on(CustomerActions.createCustomer, (state) => ({
     ...state,
     saving: true,
-    error: null,
+    mutationError: null,
   })),
   on(CustomerActions.createCustomerSuccess, (state, { customer }) => ({
     ...state,
-    customers: [...state.customers, customer],
+    customers: [customer, ...state.customers],
     saving: false,
-    error: null,
+    mutationError: null,
     draftNationalityCode: null,
     draftUniversity: null,
     universitySearchResults: [],
@@ -100,7 +86,7 @@ const customersReducer = createReducer(
   on(CustomerActions.createCustomerFailure, (state, { error }) => ({
     ...state,
     saving: false,
-    error,
+    mutationError: error,
   })),
   on(
     CustomerActions.updateCustomer,
@@ -110,7 +96,7 @@ const customersReducer = createReducer(
     (state) => ({
       ...state,
       saving: true,
-      error: null,
+      mutationError: null,
     }),
   ),
   on(CustomerActions.updateCustomerSuccess, (state, { customer }) => ({
@@ -119,7 +105,7 @@ const customersReducer = createReducer(
       existing.id === customer.id ? customer : existing,
     ),
     saving: false,
-    error: null,
+    mutationError: null,
     editingCustomerId: null,
     draftNationalityCode: null,
     draftUniversity: null,
@@ -136,7 +122,7 @@ const customersReducer = createReducer(
         existing.id === customer.id ? customer : existing,
       ),
       saving: false,
-      error: null,
+      mutationError: null,
       editingAddressId: null,
     }),
   ),
@@ -144,7 +130,7 @@ const customersReducer = createReducer(
     ...state,
     customers: state.customers.filter((customer) => customer.id !== id),
     saving: false,
-    error: null,
+    mutationError: null,
     editingCustomerId: state.editingCustomerId === id ? null : state.editingCustomerId,
   })),
   on(
@@ -155,21 +141,31 @@ const customersReducer = createReducer(
     (state, { error }) => ({
       ...state,
       saving: false,
-      error,
+      mutationError: error,
     }),
   ),
+  on(CustomerActions.clearMutationError, (state) => ({
+    ...state,
+    mutationError: null,
+  })),
   on(CustomerActions.setFilter, (state, { filter }) => ({
     ...state,
     filter,
   })),
-  on(CustomerActions.setDraftNationality, (state, { nationalityCode }) => ({
-    ...state,
-    draftNationalityCode: nationalityCode,
-    draftUniversity: null,
-    universitySearchResults: [],
-    universitySearchLoading: false,
-    universitySearchError: null,
-  })),
+  on(CustomerActions.setDraftNationality, (state, { nationalityCode }) => {
+    if (state.draftNationalityCode === nationalityCode) {
+      return state;
+    }
+
+    return {
+      ...state,
+      draftNationalityCode: nationalityCode,
+      draftUniversity: null,
+      universitySearchResults: [],
+      universitySearchLoading: false,
+      universitySearchError: null,
+    };
+  }),
   on(CustomerActions.startCustomerEdit, (state, { id }) => {
     const customer = state.customers.find((existing) => existing.id === id);
     const draftUniversity =

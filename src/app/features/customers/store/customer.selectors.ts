@@ -6,10 +6,11 @@ import { customersFeature } from './customer.reducer';
 export const {
   selectCustomersState,
   selectCustomers,
-  selectLoading,
-  selectSaving,
-  selectError,
-  selectFilter,
+  selectLoading: selectCustomersLoading,
+  selectSaving: selectCustomersSaving,
+  selectLoadError: selectCustomersLoadError,
+  selectMutationError: selectCustomersMutationError,
+  selectFilter: selectCustomersFilter,
   selectEditingCustomerId,
   selectEditingAddressId,
   selectDraftNationalityCode,
@@ -54,6 +55,34 @@ export const selectCustomerTableRows = createSelector(
           .join(' '),
       };
     });
+  },
+);
+
+export type CustomerTableRow = ReturnType<typeof selectCustomerTableRows>[number];
+
+export const selectFilteredCustomerTableRows = createSelector(
+  selectCustomerTableRows,
+  selectCustomersFilter,
+  (rows, filterValue) => {
+    const term = filterValue.trim().toLowerCase();
+    if (!term) {
+      return rows;
+    }
+
+    return rows.filter((row) =>
+      [
+        row.firstName,
+        row.lastName,
+        row.nationalityName,
+        row.nationalityCode,
+        row.universityName,
+        row.addressSearchText,
+      ]
+        .filter((value): value is string => !!value)
+        .join(' ')
+        .toLowerCase()
+        .includes(term),
+    );
   },
 );
 
