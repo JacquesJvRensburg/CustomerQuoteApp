@@ -1,7 +1,6 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable, shareReplay, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, Observable, shareReplay, throwError } from 'rxjs';
 
 import { Country } from '../../models/country.model';
 
@@ -12,21 +11,30 @@ export class CountriesService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = 'https://countries.dev/countries';
 
-  /** Cached once for the app lifetime — list is stable. */
-  private readonly countries$: Observable<Country[]> = this.http
-    .get<Country[]>(this.apiUrl, {
-      params: { fields: 'name,flag,flags,alpha2Code' },
-    })
-    .pipe(
-      map((countries) =>
-        [...countries].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })),
-      ),
-      catchError((error: unknown) => this.handleError(error)),
-      shareReplay({ bufferSize: 1, refCount: false }),
-    );
+  /** Successful responses are cached; failures clear the cache so callers can retry. */
+  private countries$: Observable<Country[]> | null = null;
 
-  /** Full country list (fetched once, then shared). */
+  /** Full country list (fetched once after a successful response, then shared). */
   getCountries(): Observable<Country[]> {
+    if (!this.countries$) {
+      this.countries$ = this.http
+        .get<Country[]>(this.apiUrl, {
+          params: { fields: 'name,flag,flags,alpha2Code' },
+        })
+        .pipe(
+          map((countries) =>
+            [...countries].sort((a, b) =>
+              a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+            ),
+          ),
+          catchError((error: unknown) => {
+            this.countries$ = null;
+            return this.handleError(error);
+          }),
+          shareReplay({ bufferSize: 1, refCount: false }),
+        );
+    }
+
     return this.countries$;
   }
 

@@ -15,8 +15,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
-import { combineLatest, Observable, take } from 'rxjs';
-import { map, startWith } from 'rxjs/operators';
+import { combineLatest, map, Observable, startWith, take } from 'rxjs';
 
 import { Customer } from '../../../models/customer.model';
 import { HasFormErrorPipe } from '../../../shared/pipes/has-form-error.pipe';
@@ -26,8 +25,8 @@ import { CustomerActions } from '../store/customer.actions';
 import {
   selectDraftNationalityCode,
   selectDraftUniversity,
-  selectError,
-  selectSaving,
+  selectCustomersMutationError,
+  selectCustomersSaving,
 } from '../store/customer.selectors';
 
 interface AddressForm {
@@ -64,8 +63,8 @@ export class CustomerCreateComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly store = inject(Store);
 
-  readonly saving$ = this.store.select(selectSaving);
-  readonly error$ = this.store.select(selectError);
+  readonly saving$ = this.store.select(selectCustomersSaving);
+  readonly error$ = this.store.select(selectCustomersMutationError);
   readonly draftNationalityCode$ = this.store.select(selectDraftNationalityCode);
   readonly draftUniversity$ = this.store.select(selectDraftUniversity);
 

@@ -1,11 +1,9 @@
 import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
-import { of } from 'rxjs';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { catchError, concatMap, map, of, switchMap, tap } from 'rxjs';
 
 import { DatabaseService } from '../../../core/database/database.service';
-import { CustomerActions } from '../../customers/store/customer.actions';
 import { QuoteActions } from './quote.actions';
 
 @Injectable()
@@ -33,17 +31,10 @@ export class QuoteEffects {
     ),
   );
 
-  reloadQuotesAfterReseed$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(CustomerActions.reseedDatabaseSuccess),
-      map(() => QuoteActions.loadQuotes()),
-    ),
-  );
-
   createQuote$ = createEffect(() =>
     this.actions$.pipe(
       ofType(QuoteActions.createQuote),
-      switchMap(({ quote }) =>
+      concatMap(({ quote }) =>
         this.database.saveQuote(quote).pipe(
           map((savedQuote) => QuoteActions.createQuoteSuccess({ quote: savedQuote })),
           catchError((error: unknown) =>
@@ -72,7 +63,7 @@ export class QuoteEffects {
   updateQuote$ = createEffect(() =>
     this.actions$.pipe(
       ofType(QuoteActions.updateQuote),
-      switchMap(({ id, quote }) =>
+      concatMap(({ id, quote }) =>
         this.database.updateQuote(id, quote).pipe(
           map((savedQuote) => QuoteActions.updateQuoteSuccess({ quote: savedQuote })),
           catchError((error: unknown) =>
@@ -90,7 +81,7 @@ export class QuoteEffects {
   deleteQuote$ = createEffect(() =>
     this.actions$.pipe(
       ofType(QuoteActions.deleteQuote),
-      switchMap(({ id }) =>
+      concatMap(({ id }) =>
         this.database.deleteQuote(id).pipe(
           map(() => QuoteActions.deleteQuoteSuccess({ id })),
           catchError((error: unknown) =>

@@ -5,22 +5,41 @@ import { quotesFeature } from './quote.reducer';
 export const {
   selectQuotesState,
   selectQuotes,
-  selectLoading,
-  selectSaving,
-  selectError,
-  selectFilter,
+  selectLoading: selectQuotesLoading,
+  selectSaving: selectQuotesSaving,
+  selectLoadError: selectQuotesLoadError,
+  selectMutationError: selectQuotesMutationError,
+  selectFilter: selectQuotesFilter,
   selectCustomerIdFilter,
   selectEditingQuoteId,
 } = quotesFeature;
 
-export const selectQuoteTableRows = createSelector(selectQuotes, (quotes) =>
-  quotes.map((quote) => ({
-    id: quote.id,
-    customerId: quote.customerId,
-    customerFullName: quote.customerFullName,
-    amount: quote.amount,
-    description: quote.description,
-    status: quote.status,
-    createdDate: quote.createdDate,
-  })),
+export const selectFilteredQuotes = createSelector(
+  selectQuotes,
+  selectQuotesFilter,
+  selectCustomerIdFilter,
+  (quotes, filterValue, customerIdFilter) => {
+    if (customerIdFilter !== null) {
+      return quotes.filter((quote) => quote.customerId === customerIdFilter);
+    }
+
+    const term = filterValue.trim().toLowerCase();
+    if (!term) {
+      return quotes;
+    }
+
+    return quotes.filter((quote) =>
+      [
+        String(quote.customerId),
+        quote.customerFullName,
+        quote.description,
+        quote.status,
+        String(quote.amount),
+        quote.createdDate,
+      ]
+        .join(' ')
+        .toLowerCase()
+        .includes(term),
+    );
+  },
 );

@@ -6,7 +6,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { CustomerActions } from '../../customers/store/customer.actions';
 import { selectCustomers } from '../../customers/store/customer.selectors';
 import { QuoteActions } from '../store/quote.actions';
-import { selectError, selectSaving } from '../store/quote.selectors';
+import { selectQuotesMutationError, selectQuotesSaving } from '../store/quote.selectors';
 import { QuoteCreateComponent } from './quote-create.component';
 
 describe('QuoteCreateComponent', () => {
@@ -19,8 +19,8 @@ describe('QuoteCreateComponent', () => {
         provideRouter([]),
         provideMockStore({
           selectors: [
-            { selector: selectSaving, value: false },
-            { selector: selectError, value: null },
+            { selector: selectQuotesSaving, value: false },
+            { selector: selectQuotesMutationError, value: null },
             {
               selector: selectCustomers,
               value: [

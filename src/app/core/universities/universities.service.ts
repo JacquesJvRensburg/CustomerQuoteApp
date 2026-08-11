@@ -1,7 +1,6 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, Observable, throwError } from 'rxjs';
 
 import { HipolabsUniversity, University } from '../../models/university.model';
 import { toHipolabsCountryName } from '../../shared/utils/hipolabs-country.util';
@@ -11,7 +10,11 @@ import { toHipolabsCountryName } from '../../shared/utils/hipolabs-country.util'
 })
 export class UniversitiesService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://universities.hipolabs.com/search';
+  /**
+   * Same-origin path proxied to Hipolabs (HTTP-only API) to avoid mixed content
+   * when the app is served over HTTPS. See proxy.conf.json.
+   */
+  private readonly apiUrl = '/api/universities/search';
 
   /** Search universities in a country by partial name match. */
   searchUniversities(countryName: string, query: string): Observable<University[]> {

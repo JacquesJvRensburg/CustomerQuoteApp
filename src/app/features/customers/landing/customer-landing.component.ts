@@ -1,5 +1,5 @@
-import { AsyncPipe, NgClass } from '@angular/common';
-import { Component, effect, inject, OnInit, viewChild } from '@angular/core';
+import { AsyncPipe, NgClass, NgOptimizedImage } from '@angular/common';
+import { Component, DestroyRef, effect, inject, OnInit, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -14,41 +14,31 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
-import { filter, take } from 'rxjs/operators';
+import { combineLatest, filter, take } from 'rxjs';
 
 import {
   ConfirmDialogComponent,
   ConfirmDialogData,
 } from '../../../shared/confirm-dialog/confirm-dialog.component';
-import { TruncatePipe } from '../../../shared/pipes/truncate.pipe';
-import { EditFieldInvalidPipe } from '../../../shared/pipes/edit-field-invalid.pipe';
 import { DatabaseExportButtonComponent } from '../../../shared/database-export-button/database-export-button.component';
 import { FeatureSwitcherComponent } from '../../../shared/feature-switcher/feature-switcher.component';
+import { EditFieldInvalidPipe } from '../../../shared/pipes/edit-field-invalid.pipe';
+import { TruncatePipe } from '../../../shared/pipes/truncate.pipe';
 import { CustomerNationalityPanelComponent } from '../nationality/customer-nationality-panel.component';
-import { CustomerUniversityPanelComponent } from '../university/customer-university-panel.component';
 import { CustomerActions } from '../store/customer.actions';
 import {
-  selectCustomerTableRows,
+  CustomerTableRow,
+  selectCustomersFilter,
+  selectCustomersLoadError,
+  selectCustomersLoading,
+  selectCustomersMutationError,
+  selectCustomersSaving,
   selectDraftNationalityCode,
   selectDraftUniversity,
   selectEditingCustomerId,
-  selectError,
-  selectFilter,
-  selectLoading,
-  selectSaving,
+  selectFilteredCustomerTableRows,
 } from '../store/customer.selectors';
-
-interface CustomerTableRow {
-  id: number;
-  firstName: string;
-  lastName: string;
-  nationalityCode: string | null;
-  nationalityName: string | null;
-  nationalityFlagUrl: string;
-  universityName: string | null;
-  universityWebsite: string | null;
-  addressSearchText: string;
-}
+import { CustomerUniversityPanelComponent } from '../university/customer-university-panel.component';
 
 @Component({
   selector: 'app-customer-landing',
@@ -71,6 +61,7 @@ interface CustomerTableRow {
     MatTableModule,
     MatTooltipModule,
     NgClass,
+    NgOptimizedImage,
     RouterLink,
     TruncatePipe,
   ],
@@ -79,6 +70,7 @@ interface CustomerTableRow {
 export class CustomerLandingComponent implements OnInit {
   private readonly store = inject(Store);
   private readonly dialog = inject(MatDialog);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly paginator = viewChild(MatPaginator);
   private readonly sort = viewChild(MatSort);
 
@@ -95,11 +87,13 @@ export class CustomerLandingComponent implements OnInit {
 
   readonly dataSource = new MatTableDataSource<CustomerTableRow>([]);
   readonly pageSizeOptions = [5, 10, 25];
-  readonly loading$ = this.store.select(selectLoading);
-  readonly saving$ = this.store.select(selectSaving);
-  readonly error$ = this.store.select(selectError);
+  readonly loading$ = this.store.select(selectCustomersLoading);
+  readonly saving$ = this.store.select(selectCustomersSaving);
+  readonly loadError$ = this.store.select(selectCustomersLoadError);
+  readonly mutationError$ = this.store.select(selectCustomersMutationError);
 
   filterValue = '';
+  private lastFilterKey = '';
   editingCustomerId: number | null = null;
   editFirstName = '';
   editLastName = '';
@@ -112,41 +106,25 @@ export class CustomerLandingComponent implements OnInit {
   readonly editInputInvalidClass =
     'border-red-400 bg-red-50 text-slate-900 ring-red-200 focus:border-red-500 focus:bg-white focus:ring-red-300';
 
-  constructor() {
-    this.dataSource.filterPredicate = (row, filter) => {
-      const term = filter.trim().toLowerCase();
-      if (!term) {
-        return true;
-      }
+  readonly trackByCustomerId = (_index: number, row: CustomerTableRow): number => row.id;
 
-      return [
-        row.firstName,
-        row.lastName,
-        row.nationalityName,
-        row.nationalityCode,
-        row.universityName,
-        row.addressSearchText,
-      ]
-        .filter((value): value is string => !!value)
-        .join(' ')
-        .toLowerCase()
-        .includes(term);
-    };
+  constructor() {
+    this.destroyRef.onDestroy(() => {
+      this.store.dispatch(CustomerActions.cancelCustomerEdit());
+    });
 
     this.store
-      .select(selectCustomerTableRows)
+      .select(selectFilteredCustomerTableRows)
       .pipe(takeUntilDestroyed())
-      .subscribe((customers) => {
-        this.dataSource.data = customers;
-        this.refreshFilter();
+      .subscribe((rows) => {
+        this.dataSource.data = rows;
       });
 
     this.store
-      .select(selectFilter)
+      .select(selectCustomersFilter)
       .pipe(takeUntilDestroyed())
       .subscribe((filterValue) => {
         this.filterValue = filterValue;
-        this.refreshFilter();
       });
 
     this.store
@@ -181,7 +159,18 @@ export class CustomerLandingComponent implements OnInit {
   }
 
   applyFilter(value: string): void {
-    this.store.dispatch(CustomerActions.setFilter({ filter: value ?? '' }));
+    const next = value ?? '';
+    this.filterValue = next;
+    this.store.dispatch(CustomerActions.setFilter({ filter: next }));
+    const filterKey = next.trim().toLowerCase();
+    if (filterKey !== this.lastFilterKey) {
+      this.lastFilterKey = filterKey;
+      this.dataSource.paginator?.firstPage();
+    }
+  }
+
+  dismissMutationError(): void {
+    this.store.dispatch(CustomerActions.clearMutationError());
   }
 
   startEdit(row: CustomerTableRow): void {
@@ -204,32 +193,29 @@ export class CustomerLandingComponent implements OnInit {
       return;
     }
 
-    this.store
-      .select(selectDraftNationalityCode)
+    combineLatest([
+      this.store.select(selectDraftNationalityCode),
+      this.store.select(selectDraftUniversity),
+    ])
       .pipe(take(1))
-      .subscribe((nationalityCode) => {
-        this.store
-          .select(selectDraftUniversity)
-          .pipe(take(1))
-          .subscribe((draftUniversity) => {
-            const trimmedNationality = nationalityCode?.trim() ?? '';
-            const universityName = draftUniversity?.name?.trim() ?? '';
+      .subscribe(([nationalityCode, draftUniversity]) => {
+        const trimmedNationality = nationalityCode?.trim() ?? '';
+        const universityName = draftUniversity?.name?.trim() ?? '';
 
-            if (!trimmedNationality || !universityName) {
-              return;
-            }
+        if (!trimmedNationality || !universityName) {
+          return;
+        }
 
-            this.store.dispatch(
-              CustomerActions.updateCustomer({
-                id: row.id,
-                firstName,
-                lastName,
-                nationalityCode: trimmedNationality,
-                universityName,
-                universityWebsite: draftUniversity?.website?.trim() || null,
-              }),
-            );
-          });
+        this.store.dispatch(
+          CustomerActions.updateCustomer({
+            id: row.id,
+            firstName,
+            lastName,
+            nationalityCode: trimmedNationality,
+            universityName,
+            universityWebsite: draftUniversity?.website?.trim() || null,
+          }),
+        );
       });
   }
 
@@ -247,17 +233,12 @@ export class CustomerLandingComponent implements OnInit {
 
     dialogRef
       .afterClosed()
-      .pipe(filter((confirmed): confirmed is true => confirmed === true))
+      .pipe(
+        take(1),
+        filter((confirmed): confirmed is true => confirmed === true),
+      )
       .subscribe(() => {
         this.store.dispatch(CustomerActions.deleteCustomer({ id: row.id }));
       });
-  }
-
-  private refreshFilter(): void {
-    this.dataSource.filter = this.filterValue.trim().toLowerCase();
-
-    if (this.dataSource.paginator) {
-      this.dataSource.paginator.firstPage();
-    }
   }
 }

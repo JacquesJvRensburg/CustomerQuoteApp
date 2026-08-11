@@ -1,15 +1,14 @@
 import { Injectable } from '@angular/core';
-import { from, Observable, of, throwError } from 'rxjs';
-import { concatMap, last, map, switchMap, tap } from 'rxjs/operators';
+import { concatMap, from, last, map, Observable, of, shareReplay, switchMap, tap, throwError } from 'rxjs';
 import initSqlJs, { Database, SqlJsStatic } from 'sql.js';
 
 import { Address, AddressEntity } from '../../models/address.model';
 import { Customer, CustomerEntity } from '../../models/customer.model';
-import { Quote, QuoteEntity, QuoteStatus, QUOTE_DESCRIPTION_MAX_LENGTH } from '../../models/quote.model';
+import { Quote, QuoteEntity, QuoteStatus, QUOTE_DESCRIPTION_MAX_LENGTH, QUOTE_STATUSES } from '../../models/quote.model';
 import { DATABASE_SCHEMA } from './database.schema';
 
 const DB_STORAGE_KEY = 'customer-quote-app-sqlite';
-
+const ALLOWED_TABLES = new Set(['customers', 'addresses', 'quotes'] as const);
 @Injectable({
   providedIn: 'root',
 })
@@ -17,6 +16,7 @@ export class DatabaseService {
   private sqlJs: SqlJsStatic | null = null;
   private db: Database | null = null;
   private init$: Observable<Database> | null = null;
+  private seed$: Observable<void> | null = null;
 
   /**
    * Ensures SQLite is loaded, schema applied, and the DB is ready for queries.
@@ -28,9 +28,15 @@ export class DatabaseService {
 
     if (!this.init$) {
       this.init$ = from(this.openDatabase()).pipe(
-        tap((db) => {
-          this.db = db;
+        tap({
+          next: (db) => {
+            this.db = db;
+          },
+          error: () => {
+            this.init$ = null;
+          },
         }),
+        shareReplay({ bufferSize: 1, refCount: false }),
       );
     }
 
@@ -40,6 +46,8 @@ export class DatabaseService {
   saveCustomer(customer: Customer): Observable<CustomerEntity> {
     return this.initialize().pipe(
       map((db) => {
+        this.assertCustomerNameLengths(customer.firstName, customer.lastName);
+
         db.run('BEGIN');
 
         try {
@@ -74,80 +82,90 @@ export class DatabaseService {
 
   /** Seeds demo customers and quotes when the database is first initialised. */
   ensureSeedData(): Observable<void> {
-    return this.getCustomers().pipe(
-      switchMap((customers) => {
-        if (customers.length > 0) {
-          return of(undefined);
-        }
+    if (!this.seed$) {
+      this.seed$ = this.getCustomers().pipe(
+        switchMap((customers) => {
+          if (customers.length > 0) {
+            return of(undefined);
+          }
 
-        const seedCustomers: Customer[] = [
-          {
-            firstName: 'Thabo',
-            lastName: 'Molefe',
-            nationalityCode: 'ZA',
-            universityName: 'University of Cape Town',
-            universityWebsite: 'http://www.uct.ac.za/',
-            addresses: [
-              {
-                street: '12 Long Street',
-                city: 'Cape Town',
-                suburb: 'City Centre',
-                postalCode: '8001',
-              },
-            ],
-          },
-          {
-            firstName: 'Sarah',
-            lastName: 'van Wyk',
-            nationalityCode: 'ZA',
-            universityName: 'University of Witwatersrand',
-            universityWebsite: 'http://www.wits.ac.za/',
-            addresses: [
-              {
-                street: '45 Rivonia Road',
-                city: 'Johannesburg',
-                suburb: 'Sandton',
-                postalCode: '2196',
-              },
-              {
-                street: '8 Beach Road',
-                city: 'Durban',
-                suburb: 'Umhlanga',
-                postalCode: '4319',
-              },
-            ],
-          },
-          {
-            firstName: 'James',
-            lastName: 'Naidoo',
-            nationalityCode: 'ZA',
-            universityName: 'University of Pretoria',
-            universityWebsite: 'http://www.up.ac.za/',
-            addresses: [
-              {
-                street: '3 Church Street',
-                city: 'Pretoria',
-                suburb: 'Hatfield',
-                postalCode: '0028',
-              },
-            ],
-          },
-        ];
+          const seedCustomers: Customer[] = [
+            {
+              firstName: 'Thabo',
+              lastName: 'Molefe',
+              nationalityCode: 'ZA',
+              universityName: 'University of Cape Town',
+              universityWebsite: 'http://www.uct.ac.za/',
+              addresses: [
+                {
+                  street: '12 Long Street',
+                  city: 'Cape Town',
+                  suburb: 'City Centre',
+                  postalCode: '8001',
+                },
+              ],
+            },
+            {
+              firstName: 'Sarah',
+              lastName: 'van Wyk',
+              nationalityCode: 'ZA',
+              universityName: 'University of Witwatersrand',
+              universityWebsite: 'http://www.wits.ac.za/',
+              addresses: [
+                {
+                  street: '45 Rivonia Road',
+                  city: 'Johannesburg',
+                  suburb: 'Sandton',
+                  postalCode: '2196',
+                },
+                {
+                  street: '8 Beach Road',
+                  city: 'Durban',
+                  suburb: 'Umhlanga',
+                  postalCode: '4319',
+                },
+              ],
+            },
+            {
+              firstName: 'James',
+              lastName: 'Naidoo',
+              nationalityCode: 'ZA',
+              universityName: 'University of Pretoria',
+              universityWebsite: 'http://www.up.ac.za/',
+              addresses: [
+                {
+                  street: '3 Church Street',
+                  city: 'Pretoria',
+                  suburb: 'Hatfield',
+                  postalCode: '0028',
+                },
+              ],
+            },
+          ];
 
-        return from(seedCustomers).pipe(
-          concatMap((customer) => this.saveCustomer(customer)),
-          last(),
-          switchMap(() => this.getCustomers()),
-          switchMap((savedCustomers) =>
-            this.initialize().pipe(
-              map((db) => {
-                this.insertSeedQuotes(db, savedCustomers);
-              }),
+          return from(seedCustomers).pipe(
+            concatMap((customer) => this.saveCustomer(customer)),
+            last(),
+            switchMap(() => this.getCustomers()),
+            switchMap((savedCustomers) =>
+              this.initialize().pipe(
+                map((db) => {
+                  this.insertSeedQuotes(db, savedCustomers);
+                }),
+              ),
             ),
-          ),
-        );
-      }),
-    );
+          );
+        }),
+        tap({
+          error: () => {
+            this.seed$ = null;
+          },
+        }),
+        shareReplay({ bufferSize: 1, refCount: false }),
+      );
+    }
+
+    return this.seed$;
   }
 
   getCustomers(): Observable<CustomerEntity[]> {
@@ -253,6 +271,8 @@ export class DatabaseService {
           throw new Error(`Customer with id ${id} not found`);
         }
 
+        this.assertCustomerNameLengths(firstName, lastName);
+
         db.run(
           'UPDATE customers SET firstName = ?, lastName = ?, nationalityCode = ?, universityName = ?, universityWebsite = ? WHERE id = ?',
           [firstName, lastName, nationalityCode, universityName, universityWebsite, id],
@@ -270,6 +290,8 @@ export class DatabaseService {
         if (customerId === null) {
           throw new Error(`Address with id ${address.id} not found`);
         }
+
+        this.assertAddressLengths(address);
 
         db.run(
           `UPDATE addresses
@@ -291,6 +313,11 @@ export class DatabaseService {
           throw new Error(`Address with id ${addressId} not found`);
         }
 
+        const addresses = this.getAddressesForCustomerSync(db, customerId);
+        if (addresses.length <= 1) {
+          throw new Error('A customer must have at least one address');
+        }
+
         db.run('DELETE FROM addresses WHERE id = ?', [addressId]);
         this.persist(db);
         return this.getCustomerByIdSync(db, customerId);
@@ -308,6 +335,7 @@ export class DatabaseService {
     return this.initialize().pipe(
       map((db) => {
         this.assertQuoteDescription(quote.description);
+        this.assertQuoteStatus(quote.status);
 
         const customer = this.findCustomerRow(db, quote.customerId);
         if (!customer) {
@@ -335,6 +363,7 @@ export class DatabaseService {
     return this.initialize().pipe(
       map((db) => {
         this.assertQuoteDescription(quote.description);
+        this.assertQuoteStatus(quote.status);
 
         const existing = this.findQuoteRow(db, id);
         if (!existing) {
@@ -376,20 +405,6 @@ export class DatabaseService {
     );
   }
 
-  /** Wipes persisted data and re-runs seed customers and quotes. */
-  reseed(): Observable<void> {
-    localStorage.removeItem(DB_STORAGE_KEY);
-
-    if (this.db) {
-      this.db.close();
-    }
-
-    this.db = null;
-    this.init$ = null;
-
-    return this.ensureSeedData();
-  }
-
   private async openDatabase(): Promise<Database> {
     this.sqlJs = await initSqlJs({
       locateFile: () => '/assets/sql-wasm.wasm',
@@ -422,6 +437,10 @@ export class DatabaseService {
   }
 
   private hasColumn(db: Database, table: string, column: string): boolean {
+    if (!ALLOWED_TABLES.has(table as 'customers' | 'addresses' | 'quotes')) {
+      throw new Error(`Unsupported table for schema introspection: ${table}`);
+    }
+
     const result = db.exec(`PRAGMA table_info(${table})`);
     if (!result.length) {
       return false;
@@ -431,6 +450,8 @@ export class DatabaseService {
   }
 
   private insertAddress(db: Database, customerId: number, address: Address): void {
+    this.assertAddressLengths(address);
+
     db.run(
       `INSERT INTO addresses (customerId, street, city, suburb, postalCode)
        VALUES (?, ?, ?, ?, ?)`,
@@ -625,7 +646,7 @@ export class DatabaseService {
       customerFullName: `${String(row[2] ?? '')} ${String(row[3] ?? '')}`.trim(),
       amount: row[4] as number,
       description: String(row[5] ?? ''),
-      status: String(row[6] ?? 'Draft') as QuoteStatus,
+      status: this.parseQuoteStatus(String(row[6] ?? 'Draft')),
       createdDate: String(row[7] ?? ''),
     };
   }
@@ -635,9 +656,18 @@ export class DatabaseService {
       return;
     }
 
-    const thabo = customers[0];
-    const sarah = customers[Math.min(1, customers.length - 1)];
-    const james = customers[Math.min(2, customers.length - 1)];
+    const findCustomer = (firstName: string, lastName: string): CustomerEntity | undefined =>
+      customers.find(
+        (customer) => customer.firstName === firstName && customer.lastName === lastName,
+      );
+
+    const thabo = findCustomer('Thabo', 'Molefe');
+    const sarah = findCustomer('Sarah', 'van Wyk');
+    const james = findCustomer('James', 'Naidoo');
+
+    if (!thabo || !sarah || !james) {
+      throw new Error('Seed customers were not found when inserting seed quotes');
+    }
 
     const seedQuotes: Array<{
       customerId: number;
@@ -737,6 +767,39 @@ export class DatabaseService {
     }
   }
 
+  private assertQuoteStatus(status: string): void {
+    if (!QUOTE_STATUSES.includes(status as QuoteStatus)) {
+      throw new Error(`Invalid quote status: ${status}`);
+    }
+  }
+
+  private parseQuoteStatus(status: string): QuoteStatus {
+    if (QUOTE_STATUSES.includes(status as QuoteStatus)) {
+      return status as QuoteStatus;
+    }
+
+    return 'Draft';
+  }
+
+  private assertCustomerNameLengths(firstName: string, lastName: string): void {
+    if (firstName.length > 100 || lastName.length > 100) {
+      throw new Error('Customer names must be 100 characters or fewer');
+    }
+  }
+
+  private assertAddressLengths(
+    address: Pick<Address, 'street' | 'suburb' | 'city' | 'postalCode'>,
+  ): void {
+    if (
+      address.street.length > 200 ||
+      address.suburb.length > 100 ||
+      address.city.length > 100 ||
+      address.postalCode.length > 20
+    ) {
+      throw new Error('Address fields exceed the allowed maximum length');
+    }
+  }
+
   private daysAgoIso(days: number): string {
     const date = new Date();
     date.setUTCDate(date.getUTCDate() - days);
@@ -749,8 +812,21 @@ export class DatabaseService {
   }
 
   private persist(db: Database): void {
-    const data = db.export();
-    localStorage.setItem(DB_STORAGE_KEY, this.encodeBase64(data));
+    try {
+      const data = db.export();
+      localStorage.setItem(DB_STORAGE_KEY, this.encodeBase64(data));
+    } catch (error) {
+      if (
+        error instanceof DOMException &&
+        (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')
+      ) {
+        throw new Error(
+          'Browser storage is full. Export or clear data before saving more records.',
+        );
+      }
+
+      throw error;
+    }
   }
 
   private downloadDatabaseFile(data: Uint8Array, filename: string): void {

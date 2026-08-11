@@ -1,78 +1,53 @@
-import { Component, inject, isDevMode } from '@angular/core';
+import { Component, inject, isDevMode, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Store } from '@ngrx/store';
-import { filter, take } from 'rxjs/operators';
+import { catchError, of, take } from 'rxjs';
 
-import { CustomerActions } from '../../features/customers/store/customer.actions';
 import { DatabaseService } from '../../core/database/database.service';
-import {
-  ConfirmDialogComponent,
-  ConfirmDialogData,
-} from '../confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-database-export-button',
-  imports: [MatButtonModule, MatDialogModule, MatIconModule, MatTooltipModule],
+  imports: [MatButtonModule, MatIconModule, MatTooltipModule],
   template: `
     @if (isDev) {
-      <button
-        mat-stroked-button
-        type="button"
-        class="!rounded-full !px-4"
-        matTooltip="Clear all data and restore seed customers and quotes"
-        (click)="reseedDatabase()"
-      >
-        <mat-icon>restart_alt</mat-icon>
-        Reseed database
-      </button>
-      <button
-        mat-stroked-button
-        type="button"
-        class="!rounded-full !px-4"
-        matTooltip="Download SQLite database file for inspection"
-        (click)="exportDatabase()"
-      >
-        <mat-icon>download</mat-icon>
-        Export database
-      </button>
+      <div class="flex flex-col items-end gap-1">
+        <button
+          mat-stroked-button
+          type="button"
+          class="!rounded-full !px-4"
+          matTooltip="Download SQLite database file for inspection"
+          (click)="exportDatabase()"
+        >
+          <mat-icon>download</mat-icon>
+          Export database
+        </button>
+        @if (errorMessage(); as error) {
+          <p class="m-0 max-w-xs text-right text-xs text-red-700" role="alert">{{ error }}</p>
+        }
+      </div>
     }
   `,
 })
 export class DatabaseExportButtonComponent {
   private readonly database = inject(DatabaseService);
-  private readonly dialog = inject(MatDialog);
-  private readonly store = inject(Store);
 
   readonly isDev = isDevMode();
-
-  reseedDatabase(): void {
-    const dialogRef = this.dialog.open<ConfirmDialogComponent, ConfirmDialogData, boolean>(
-      ConfirmDialogComponent,
-      {
-        data: {
-          title: 'Reseed database',
-          message:
-            'This will delete all customers, addresses, and quotes, then restore the demo seed data. Continue?',
-          confirmLabel: 'Reseed',
-        },
-      },
-    );
-
-    dialogRef
-      .afterClosed()
-      .pipe(
-        filter((confirmed): confirmed is true => confirmed === true),
-        take(1),
-      )
-      .subscribe(() => {
-        this.store.dispatch(CustomerActions.reseedDatabase());
-      });
-  }
+  readonly errorMessage = signal<string | null>(null);
 
   exportDatabase(): void {
-    this.database.exportDatabase().pipe(take(1)).subscribe();
+    this.errorMessage.set(null);
+    this.database
+      .exportDatabase()
+      .pipe(
+        take(1),
+        catchError((error: unknown) => {
+          this.errorMessage.set(
+            error instanceof Error ? error.message : 'Failed to export database',
+          );
+          return of(undefined);
+        }),
+      )
+      .subscribe();
   }
 }

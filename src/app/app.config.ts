@@ -1,3 +1,4 @@
+import { IMAGE_LOADER, ImageLoaderConfig } from '@angular/common';
 import { provideHttpClient } from '@angular/common/http';
 import { ApplicationConfig, isDevMode, provideZoneChangeDetection } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
@@ -12,12 +13,18 @@ import { customersFeature } from './features/customers/store/customer.reducer';
 import { QuoteEffects } from './features/quotes/store/quote.effects';
 import { quotesFeature } from './features/quotes/store/quote.reducer';
 
+/** Passthrough loader so NgOptimizedImage can use absolute flag CDN URLs. */
+function passthroughImageLoader(config: ImageLoaderConfig): string {
+  return config.src;
+}
+
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
     provideHttpClient(),
     provideAnimationsAsync(),
+    { provide: IMAGE_LOADER, useValue: passthroughImageLoader },
     provideStore({
       [customersFeature.name]: customersFeature.reducer,
       [quotesFeature.name]: quotesFeature.reducer,

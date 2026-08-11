@@ -51,35 +51,53 @@
           <span class="text-slate-600">Loading quotes…</span>
         </div>
       } @else {
-        @if (error$ | async; as error) {
-          <p class="my-4 px-3 text-red-700" role="alert">{{ error }}</p>
+        @if (loadError$ | async; as loadError) {
+          <p class="my-4 px-3 text-red-700" role="alert">{{ loadError }}</p>
         } @else {
-          <div class="px-3 pb-2 pt-3 sm:px-2">
-            <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
-              <mat-label>Filter quotes</mat-label>
-              <mat-icon matPrefix>search</mat-icon>
-              <input
-                matInput
-                type="search"
-                placeholder="Customer, status, or customer ID"
-                [(ngModel)]="filterValue"
-                (ngModelChange)="applyFilter($event)"
-                aria-label="Filter quotes by customer, status, or customer ID"
-              />
-            </mat-form-field>
-          </div>
-
-          <div class="overflow-x-auto">
-            <table
-              mat-table
-              matSort
-              matSortActive="createdDate"
-              matSortDirection="desc"
-              matSortDisableClear
-              [dataSource]="dataSource"
-              class="w-full"
-              aria-label="Quote list"
+        @if (mutationError$ | async; as mutationError) {
+          <div
+            class="mx-3 mb-3 flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+            role="alert"
+          >
+            <span>{{ mutationError }}</span>
+            <button
+              mat-button
+              type="button"
+              class="!min-w-0 !shrink-0 !text-red-800"
+              (click)="dismissMutationError()"
             >
+              Dismiss
+            </button>
+          </div>
+        }
+
+        <div class="px-3 pb-2 pt-3 sm:px-2">
+          <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+            <mat-label>Filter quotes</mat-label>
+            <mat-icon matPrefix>search</mat-icon>
+            <input
+              matInput
+              type="search"
+              placeholder="Customer, status, amount, or customer ID"
+              [(ngModel)]="filterValue"
+              (ngModelChange)="applyFilter($event)"
+              aria-label="Filter quotes by customer, status, amount, or customer ID"
+            />
+          </mat-form-field>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table
+            mat-table
+            matSort
+            matSortActive="createdDate"
+            matSortDirection="desc"
+            matSortDisableClear
+            [dataSource]="dataSource"
+            [trackBy]="trackByQuoteId"
+            class="w-full"
+            aria-label="Quote list"
+          >
               <ng-container matColumnDef="id">
                 <th
                   mat-header-cell
@@ -136,7 +154,7 @@
                         step="0.01"
                         [class]="editInputBaseClass"
                         [ngClass]="
-                          (editAmount | editFieldInvalid: editAttempted)
+                          (editAmount | editFieldInvalid: editAttempted : 'amount')
                             ? editInputInvalidClass
                             : editInputValidClass
                         "
@@ -144,14 +162,14 @@
                         name="editAmount-{{ row.id }}"
                         required
                         aria-label="Amount"
-                        [attr.aria-invalid]="editAmount | editFieldInvalid: editAttempted"
+                        [attr.aria-invalid]="editAmount | editFieldInvalid: editAttempted : 'amount'"
                       />
                       <span
                         class="absolute left-0 top-[calc(100%-1.1rem)] text-xs font-normal text-red-600"
-                        [class.invisible]="!(editAmount | editFieldInvalid: editAttempted)"
+                        [class.invisible]="!(editAmount | editFieldInvalid: editAttempted : 'amount')"
                         role="alert"
                       >
-                        Amount is required
+                        Enter a valid amount (0 or greater)
                       </span>
                     </div>
                   } @else {

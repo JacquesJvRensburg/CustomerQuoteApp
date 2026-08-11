@@ -26,7 +26,7 @@ export const DATABASE_SCHEMA = `
     customerId INTEGER NOT NULL,
     amount REAL NOT NULL,
     description TEXT NOT NULL DEFAULT '' CHECK (length(description) <= 250),
-    status TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('Draft', 'Sent', 'Accepted', 'Rejected')),
     createdDate TEXT NOT NULL,
     FOREIGN KEY (customerId) REFERENCES customers(id) ON DELETE CASCADE
   );

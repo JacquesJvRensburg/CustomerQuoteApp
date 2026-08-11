@@ -8,14 +8,15 @@ import { of } from 'rxjs';
 import { CustomerLandingComponent } from './customer-landing.component';
 import { CustomerActions } from '../store/customer.actions';
 import {
-  selectCustomerTableRows,
+  selectCustomersFilter,
+  selectCustomersLoadError,
+  selectCustomersLoading,
+  selectCustomersMutationError,
+  selectCustomersSaving,
   selectDraftNationalityCode,
   selectDraftUniversity,
   selectEditingCustomerId,
-  selectError,
-  selectFilter,
-  selectLoading,
-  selectSaving,
+  selectFilteredCustomerTableRows,
 } from '../store/customer.selectors';
 
 describe('CustomerLandingComponent', () => {
@@ -43,11 +44,12 @@ describe('CustomerLandingComponent', () => {
         provideRouter([]),
         provideMockStore({
           selectors: [
-            { selector: selectCustomerTableRows, value: rows },
-            { selector: selectLoading, value: false },
-            { selector: selectSaving, value: false },
-            { selector: selectError, value: null },
-            { selector: selectFilter, value: '' },
+            { selector: selectFilteredCustomerTableRows, value: rows },
+            { selector: selectCustomersLoading, value: false },
+            { selector: selectCustomersSaving, value: false },
+            { selector: selectCustomersLoadError, value: null },
+            { selector: selectCustomersMutationError, value: null },
+            { selector: selectCustomersFilter, value: '' },
             { selector: selectEditingCustomerId, value: null },
             { selector: selectDraftNationalityCode, value: null },
             { selector: selectDraftUniversity, value: null },
