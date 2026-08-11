@@ -1,24 +1,29 @@
 import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
-import { catchError, concatMap, map, of, switchMap, tap } from 'rxjs';
+import { Store } from '@ngrx/store';
+import { catchError, concatMap, map, of, switchMap, tap, withLatestFrom } from 'rxjs';
 
 import { DatabaseService } from '../../../core/database/database.service';
+import { CustomerActions } from '../../customers/store/customer.actions';
 import { QuoteActions } from './quote.actions';
+import { selectQuotesDataRevision } from './quote.selectors';
 
 @Injectable()
 export class QuoteEffects {
   private readonly actions$ = inject(Actions);
   private readonly database = inject(DatabaseService);
   private readonly router = inject(Router);
+  private readonly store = inject(Store);
 
   loadQuotes$ = createEffect(() =>
     this.actions$.pipe(
       ofType(QuoteActions.loadQuotes),
-      switchMap(() =>
+      withLatestFrom(this.store.select(selectQuotesDataRevision)),
+      switchMap(([, revision]) =>
         this.database.ensureSeedData().pipe(
           switchMap(() => this.database.getQuotes()),
-          map((quotes) => QuoteActions.loadQuotesSuccess({ quotes })),
+          map((quotes) => QuoteActions.loadQuotesSuccess({ quotes, revision })),
           catchError((error: unknown) =>
             of(
               QuoteActions.loadQuotesFailure({
@@ -92,6 +97,27 @@ export class QuoteEffects {
             ),
           ),
         ),
+      ),
+    ),
+  );
+
+  /** Keep quote list aligned when SQLite CASCADE-deletes quotes with a customer. */
+  removeQuotesForDeletedCustomer$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(CustomerActions.deleteCustomerSuccess),
+      map(({ id }) => QuoteActions.removeQuotesForCustomer({ customerId: id })),
+    ),
+  );
+
+  /** Refresh denormalized customer names after a customer rename. */
+  syncQuoteCustomerNames$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(CustomerActions.updateCustomerSuccess),
+      map(({ customer }) =>
+        QuoteActions.syncCustomerNameOnQuotes({
+          customerId: customer.id,
+          customerFullName: `${customer.firstName} ${customer.lastName}`.trim(),
+        }),
       ),
     ),
   );

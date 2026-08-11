@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { catchError, map, Observable, shareReplay, throwError } from 'rxjs';
 
 import { Country } from '../../models/country.model';
+import { sanitizeFlagImageUrl } from '../../shared/utils/safe-url.util';
 
 @Injectable({
   providedIn: 'root',
@@ -23,9 +24,17 @@ export class CountriesService {
         })
         .pipe(
           map((countries) =>
-            [...countries].sort((a, b) =>
-              a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
-            ),
+            [...countries]
+              .map((country) => ({
+                ...country,
+                flags: {
+                  png: sanitizeFlagImageUrl(country.flags?.png),
+                  svg: sanitizeFlagImageUrl(country.flags?.svg),
+                },
+              }))
+              .sort((a, b) =>
+                a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+              ),
           ),
           catchError((error: unknown) => {
             this.countries$ = null;

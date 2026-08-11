@@ -4,6 +4,7 @@ import { catchError, map, Observable, throwError } from 'rxjs';
 
 import { HipolabsUniversity, University } from '../../models/university.model';
 import { toHipolabsCountryName } from '../../shared/utils/hipolabs-country.util';
+import { sanitizeHttpUrl } from '../../shared/utils/safe-url.util';
 
 @Injectable({
   providedIn: 'root',
@@ -40,7 +41,7 @@ export class UniversitiesService {
         map((results) =>
           (results ?? []).map((item) => ({
             name: item.name,
-            website: item.web_pages?.[0] ?? '',
+            website: sanitizeHttpUrl(item.web_pages?.[0] ?? ''),
           })),
         ),
         catchError((error: unknown) => this.handleError(error)),

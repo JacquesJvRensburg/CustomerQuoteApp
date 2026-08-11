@@ -13,19 +13,19 @@ describe('CountriesService', () => {
     {
       name: 'South Africa',
       flag: '🇿🇦',
-      flags: { png: 'https://example.com/za.png', svg: 'https://example.com/za.svg' },
+      flags: { png: 'https://flagcdn.com/za.png', svg: 'https://flagcdn.com/za.svg' },
       alpha2Code: 'ZA',
     },
     {
       name: 'Germany',
       flag: '🇩🇪',
-      flags: { png: 'https://example.com/de.png', svg: 'https://example.com/de.svg' },
+      flags: { png: 'https://flagcdn.com/de.png', svg: 'https://flagcdn.com/de.svg' },
       alpha2Code: 'DE',
     },
     {
       name: 'Botswana',
       flag: '🇧🇼',
-      flags: { png: 'https://example.com/bw.png', svg: 'https://example.com/bw.svg' },
+      flags: { png: 'https://flagcdn.com/bw.png', svg: 'https://flagcdn.com/bw.svg' },
       alpha2Code: 'BW',
     },
   ];
@@ -59,6 +59,24 @@ describe('CountriesService', () => {
     );
     expect(request.request.method).toBe('GET');
     request.flush(unsortedCountries);
+  });
+
+  it('should drop non-allowlisted flag image hosts', () => {
+    service.getCountries().subscribe((countries) => {
+      expect(countries[0].flags).toEqual({ png: '', svg: '' });
+    });
+
+    const request = httpMock.expectOne(
+      'https://countries.dev/countries?fields=name,flag,flags,alpha2Code',
+    );
+    request.flush([
+      {
+        name: 'South Africa',
+        flag: '🇿🇦',
+        flags: { png: 'https://evil.example/za.png', svg: 'https://evil.example/za.svg' },
+        alpha2Code: 'ZA',
+      },
+    ]);
   });
 
   it('should cache the country list and not re-request on subsequent subscriptions', () => {

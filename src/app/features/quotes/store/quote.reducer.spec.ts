@@ -32,12 +32,86 @@ describe('quotesReducer', () => {
   it('should load quotes successfully', () => {
     const state = reducer(
       { ...initialQuotesState, loading: true },
-      QuoteActions.loadQuotesSuccess({ quotes: [quote] }),
+      QuoteActions.loadQuotesSuccess({ quotes: [quote], revision: 0 }),
     );
 
     expect(state.quotes).toEqual([quote]);
     expect(state.loading).toBeFalse();
     expect(state.loadError).toBeNull();
+  });
+
+  it('should discard stale load snapshots after a newer mutation revision', () => {
+    const previous: QuotesState = {
+      ...initialQuotesState,
+      quotes: [quote],
+      dataRevision: 1,
+      loading: true,
+    };
+
+    const state = reducer(
+      previous,
+      QuoteActions.loadQuotesSuccess({
+        quotes: [{ ...quote, description: 'stale' }],
+        revision: 0,
+      }),
+    );
+
+    expect(state.quotes).toEqual([quote]);
+    expect(state.loading).toBeFalse();
+  });
+
+  it('should remove quotes for a deleted customer and clear related UI state', () => {
+    const other = { ...quote, id: 2, customerId: 99, customerFullName: 'Other' };
+    const state = reducer(
+      {
+        ...initialQuotesState,
+        quotes: [quote, other],
+        editingQuoteId: 1,
+        customerIdFilter: 10,
+      },
+      QuoteActions.removeQuotesForCustomer({ customerId: 10 }),
+    );
+
+    expect(state.quotes).toEqual([other]);
+    expect(state.editingQuoteId).toBeNull();
+    expect(state.customerIdFilter).toBeNull();
+  });
+
+  it('should sync denormalized customer names on quotes', () => {
+    const other = { ...quote, id: 2, customerId: 99, customerFullName: 'Other' };
+    const state = reducer(
+      { ...initialQuotesState, quotes: [quote, other] },
+      QuoteActions.syncCustomerNameOnQuotes({
+        customerId: 10,
+        customerFullName: 'Teboho Molefe',
+      }),
+    );
+
+    expect(state.quotes[0].customerFullName).toBe('Teboho Molefe');
+    expect(state.quotes[1].customerFullName).toBe('Other');
+  });
+
+  it('should keep saving true until all pending mutations finish', () => {
+    const first = reducer(initialQuotesState, QuoteActions.deleteQuote({ id: 1 }));
+    const second = reducer(
+      first,
+      QuoteActions.updateQuote({
+        id: 2,
+        quote: {
+          customerId: 10,
+          amount: 1,
+          description: 'x',
+          status: 'Draft',
+        },
+      }),
+    );
+
+    expect(second.pendingMutations).toBe(2);
+    expect(second.saving).toBeTrue();
+
+    const afterFirst = reducer(second, QuoteActions.deleteQuoteSuccess({ id: 1 }));
+    expect(afterFirst.pendingMutations).toBe(1);
+    expect(afterFirst.saving).toBeTrue();
   });
 
   it('should store a load failure', () => {

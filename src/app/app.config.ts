@@ -12,10 +12,11 @@ import { CustomerEffects } from './features/customers/store/customer.effects';
 import { customersFeature } from './features/customers/store/customer.reducer';
 import { QuoteEffects } from './features/quotes/store/quote.effects';
 import { quotesFeature } from './features/quotes/store/quote.reducer';
+import { sanitizeFlagImageUrl } from './shared/utils/safe-url.util';
 
-/** Passthrough loader so NgOptimizedImage can use absolute flag CDN URLs. */
+/** Allowlisted flag CDN URLs only (see sanitizeFlagImageUrl). */
 function passthroughImageLoader(config: ImageLoaderConfig): string {
-  return config.src;
+  return sanitizeFlagImageUrl(config.src);
 }
 
 export const appConfig: ApplicationConfig = {

@@ -54,7 +54,14 @@ Do not commit real API keys. The key is sent as the `apikey` query parameter and
 
 - Tables: `customers`, `addresses`, `quotes` (see `src/app/core/database/database.schema.ts`)
 - Persistence key: `customer-quote-app-sqlite` in `localStorage`
+- **Demo-only storage:** the SQLite database (including names, addresses, and quotes) is saved in `localStorage` as Base64. It is **not encrypted**. Any script on this origin can read it. Do not store sensitive production data this way.
 - In development, use **Export database** in the app to download the SQLite file, then open it with the [SQLite Viewer](https://marketplace.visualstudio.com/items?itemName=qwtel.sqlite-viewer) VS Code / Cursor extension to inspect table entries
+
+### Content Security Policy
+
+`src/index.html` includes a baseline CSP meta tag (scripts, fonts, `flagcdn.com` images, Nationalize/countries APIs, sql.js WASM). For real deployments, prefer the same policy as an HTTP response header and tighten further if possible.
+
+Local `ng serve` with HMR may need extra `connect-src` entries for `ws:` / `wss:` to localhost; adjust or temporarily relax CSP while developing if the console reports blocked websocket connections.
 
 ### Why SQLite instead of a plain local file?
 

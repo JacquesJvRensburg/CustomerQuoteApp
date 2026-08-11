@@ -6,7 +6,7 @@ export const QuoteActions = createActionGroup({
   source: 'Quotes',
   events: {
     'Load Quotes': emptyProps(),
-    'Load Quotes Success': props<{ quotes: QuoteEntity[] }>(),
+    'Load Quotes Success': props<{ quotes: QuoteEntity[]; revision: number }>(),
     'Load Quotes Failure': props<{ error: string }>(),
     'Create Quote': props<{ quote: Quote }>(),
     'Create Quote Success': props<{ quote: QuoteEntity }>(),
@@ -17,6 +17,13 @@ export const QuoteActions = createActionGroup({
     'Delete Quote': props<{ id: number }>(),
     'Delete Quote Success': props<{ id: number }>(),
     'Delete Quote Failure': props<{ error: string }>(),
+    /** Drop in-memory quotes after a customer CASCADE delete. */
+    'Remove Quotes For Customer': props<{ customerId: number }>(),
+    /** Keep denormalized customer names in sync after a customer rename. */
+    'Sync Customer Name On Quotes': props<{
+      customerId: number;
+      customerFullName: string;
+    }>(),
     'Clear Mutation Error': emptyProps(),
     'Set Filter': props<{ filter: string; customerIdFilter: number | null }>(),
     'Start Quote Edit': props<{ id: number }>(),

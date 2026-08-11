@@ -29,7 +29,7 @@ describe('customersReducer', () => {
   const country: Country = {
     name: 'South Africa',
     flag: '🇿🇦',
-    flags: { png: 'za.png', svg: 'za.svg' },
+    flags: { png: 'https://flagcdn.com/za.png', svg: 'https://flagcdn.com/za.svg' },
     alpha2Code: 'ZA',
   };
 
@@ -61,12 +61,56 @@ describe('customersReducer', () => {
   it('should load customers successfully', () => {
     const state = reducer(
       { ...initialCustomersState, loading: true },
-      CustomerActions.loadCustomersSuccess({ customers: [customer] }),
+      CustomerActions.loadCustomersSuccess({ customers: [customer], revision: 0 }),
     );
 
     expect(state.customers).toEqual([customer]);
     expect(state.loading).toBeFalse();
     expect(state.loadError).toBeNull();
+  });
+
+  it('should discard stale load snapshots after a newer mutation revision', () => {
+    const previous: CustomersState = {
+      ...initialCustomersState,
+      customers: [customer],
+      dataRevision: 2,
+      loading: true,
+    };
+
+    const state = reducer(
+      previous,
+      CustomerActions.loadCustomersSuccess({
+        customers: [{ ...customer, firstName: 'Stale' }],
+        revision: 0,
+      }),
+    );
+
+    expect(state.customers).toEqual([customer]);
+    expect(state.loading).toBeFalse();
+  });
+
+  it('should keep saving true until all pending mutations finish', () => {
+    const first = reducer(initialCustomersState, CustomerActions.deleteCustomer({ id: 1 }));
+    const second = reducer(first, CustomerActions.updateAddress({ address }));
+
+    expect(second.pendingMutations).toBe(2);
+    expect(second.saving).toBeTrue();
+
+    const afterFirstSuccess = reducer(
+      second,
+      CustomerActions.deleteCustomerSuccess({ id: 1 }),
+    );
+    expect(afterFirstSuccess.pendingMutations).toBe(1);
+    expect(afterFirstSuccess.saving).toBeTrue();
+
+    const afterSecondSuccess = reducer(
+      afterFirstSuccess,
+      CustomerActions.updateAddressSuccess({
+        customer: { ...customer, addresses: [] },
+      }),
+    );
+    expect(afterSecondSuccess.pendingMutations).toBe(0);
+    expect(afterSecondSuccess.saving).toBeFalse();
   });
 
   it('should store a load failure', () => {

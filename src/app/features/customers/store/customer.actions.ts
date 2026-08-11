@@ -9,7 +9,7 @@ export const CustomerActions = createActionGroup({
   source: 'Customers',
   events: {
     'Load Customers': emptyProps(),
-    'Load Customers Success': props<{ customers: CustomerEntity[] }>(),
+    'Load Customers Success': props<{ customers: CustomerEntity[]; revision: number }>(),
     'Load Customers Failure': props<{ error: string }>(),
     'Create Customer': props<{ customer: Customer }>(),
     'Create Customer Success': props<{ customer: CustomerEntity }>(),
