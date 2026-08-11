@@ -46,6 +46,18 @@ Open `http://localhost:4200/`. `ng serve` uses `proxy.conf.json` so university s
 - Persistence key: `customer-quote-app-sqlite` in `localStorage`
 - In development, use **Export database** in the app to download the SQLite file, then open it with the [SQLite Viewer](https://marketplace.visualstudio.com/items?itemName=qwtel.sqlite-viewer) VS Code / Cursor extension to inspect table entries
 
+### Why SQLite instead of a plain local file?
+
+Customers, addresses, and quotes are related data. A plain JSON file (or ad hoc objects in `localStorage`) would mean hand-rolling joins, filters, and consistency checks as the app grows. SQLite (via sql.js) gives:
+
+- **Relational structure** — foreign keys and normalized tables instead of nested arrays that drift out of sync
+- **Queryable data** — filter, sort, and look up by id with SQL rather than loading everything and scanning in memory
+- **Schema and integrity** — a defined schema keeps shapes consistent across seeds, migrations, and CRUD
+- **Debuggability** — export a real `.db` file and inspect it with a SQLite viewer
+- **A path toward a backend** — the same SQL-oriented data access maps more cleanly to a server database later
+
+A flat local file can be enough for tiny, unstructured settings. For this domain model, SQLite is the better local store.
+
 ## Project layout
 
 ```
